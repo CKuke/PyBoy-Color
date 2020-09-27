@@ -328,7 +328,7 @@ class Motherboard:
             else:
                 self.ram.io_ports[i - 0xFF00] = value
         elif 0xFF4C <= i < 0xFF80: # Empty but unusable for I/O
-            if self.bootrom_enabled and i == 0xFF50 and value == 1:
+            if self.bootrom_enabled and i == 0xFF50 and value == 0x1 or value == 0x11: #0x11 for gameboy color
                 self.bootrom_enabled = False
             self.ram.non_io_internal_ram1[i - 0xFF4C] = value
         elif 0xFF80 <= i < 0xFFFF: # Internal RAM
