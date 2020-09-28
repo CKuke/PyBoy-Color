@@ -20,8 +20,6 @@ main:
 
 .DMG
     ld A, $1
-    jp end
-
 
 SECTION "epilog", ROM0[$00FE]
 end
