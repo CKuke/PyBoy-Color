@@ -61,6 +61,8 @@ tmp.state
 /pyboy/**/*.h
 /pyboy/**/*.html
 /pyboy/**/*.so
+/pyboy/.vscode
+/screenshots/*
 
 /recordings
 
