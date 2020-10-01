@@ -22,6 +22,18 @@ class CgbRam(RAM):
             if bank > 0x07:
                 bank = 0x01
             return self.wram[bank][addr]
+    
+    def __write_wram(self, addr, val):
+        if 0xC000 <= addr and addr < 0xD000:
+            self.wram[0][addr] = val
+        else:
+            # Read which bank to read from at FF70
+            io_offset = 0xFF00
+            bank_addr = 0xFF70 - io_offset
+            bank = self.__read_io(bank_addr)
+            if bank > 0x07:
+                bank = 0x01
+            self.wram[bank][addr] = val
         
 
 # TODO: Delete all below when finished testing
