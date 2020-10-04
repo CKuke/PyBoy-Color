@@ -19,10 +19,10 @@
 **OAM**: Object (sprite) attribute table: Memory location used to store the information of the sprites to be rendered on screen. 160 bytes so room for 40 sprites
 
 **Sprite bytes**:
-    1. 1: Y location
-    1. 2: X location
-    1. 3: Tile number
-    1. 4: Flags
+    1. Y location
+    2. X location
+    3. Tile number
+    4. Flags
 
 **Flags in 4th sprite byte**:
     1. 7: Render priority
