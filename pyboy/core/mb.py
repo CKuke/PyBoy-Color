@@ -7,16 +7,15 @@ import logging
 
 from pyboy.utils import STATE_VERSION
 
-from . import bootrom, cartridge, cpu, interaction, lcd, ram, sound, timer
+from . import bootrom, cartridge, cpu, interaction, lcd, ram, sound, timer, cgb_lcd
 
 logger = logging.getLogger(__name__)
 
 VBLANK, LCDC, TIMER, SERIAL, HIGHTOLOW = range(5)
 STAT, _, _, LY, LYC = range(0xFF41, 0xFF46)
 
-
 class Motherboard:
-    def __init__(self, gamerom_file, bootrom_file, color_palette, disable_renderer, sound_enabled, profiling=False):
+    def __init__(self, gamerom_file, bootrom_file, color_palette, disable_renderer, sound_enabled, profiling=False, CGB=0):
         if bootrom_file is not None:
             logger.info("Boot-ROM file provided")
 
@@ -29,6 +28,12 @@ class Motherboard:
         self.bootrom = bootrom.BootROM(bootrom_file)
         self.ram = ram.RAM(random=False)
         self.cpu = cpu.CPU(self, profiling)
+        
+        if self.cartridge.is_cgb:
+            self.lcd = cgb_lcd.cgbLCD()
+        else:
+            self.lcd = lcd.LCD()
+
         self.lcd = lcd.LCD()
         self.renderer = lcd.Renderer(color_palette)
         self.disable_renderer = disable_renderer
@@ -210,7 +215,7 @@ class Motherboard:
         elif 0x4000 <= i < 0x8000: # 16kB switchable ROM bank
             return self.cartridge.getitem(i)
         elif 0x8000 <= i < 0xA000: # 8kB Video RAM
-            return self.lcd.VRAM[i - 0x8000]
+            return self.lcd.LCD.getVRAM(i)
         elif 0xA000 <= i < 0xC000: # 8kB switchable RAM bank
             return self.cartridge.getitem(i)
         elif 0xC000 <= i < 0xE000: # 8kB Internal RAM
@@ -252,6 +257,9 @@ class Motherboard:
                 return self.lcd.WY
             elif i == 0xFF4B:
                 return self.lcd.WX
+            #Get current VRAM bank, CGB check probably redundant
+            elif i == 0xFF4F and self.cartridge.is_cgb:
+                return self.lcd.VBK.value
             else:
                 return self.ram.io_ports[i - 0xFF00]
         elif 0xFF4C <= i < 0xFF80: # Empty but unusable for I/O
@@ -273,7 +281,7 @@ class Motherboard:
             # Doesn't change the data. This is for MBC commands
             self.cartridge.setitem(i, value)
         elif 0x8000 <= i < 0xA000: # 8kB Video RAM
-            self.lcd.VRAM[i - 0x8000] = value
+            self.lcd.LCD.setVRAM(i, value) 
             if i < 0x9800: # Is within tile data -- not tile maps
                 # Mask out the byte of the tile
                 self.renderer.tiles_changed.add(i & 0xFFF0)
@@ -325,6 +333,9 @@ class Motherboard:
                 self.lcd.WY = value
             elif i == 0xFF4B:
                 self.lcd.WX = value
+            #Switch VRAM bank, redundant CGB check    
+            elif i == 0xFF4F and self.cartridge.is_cgb:
+                self.lcd.VBK.set(value)
             else:
                 self.ram.io_ports[i - 0xFF00] = value
         elif 0xFF4C <= i < 0xFF80: # Empty but unusable for I/O

@@ -37,6 +37,8 @@ class BaseMBC:
         self.rambank_selected = 0
         self.rombank_selected = 1
 
+        self.is_cgb = self.getitem(0x0143) >> 7
+  
         if not os.path.exists(self.filename):
             logger.info("No RAM file found. Skipping.")
         else:

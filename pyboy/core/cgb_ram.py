@@ -1,4 +1,3 @@
-
 import array
 from base_ram import RAM
 

@@ -39,6 +39,12 @@ class LCD:
         self.WY = 0x00
         self.WX = 0x00
 
+    def setVRAM(self, i, value):
+        self.VRAM[i - 0x8000] = value
+    
+    def getVRAM(self, i):
+        return self.VRAM[i - 0x8000]
+
     def save_state(self, f):
         for n in range(VIDEO_RAM):
             f.write(self.VRAM[n])
@@ -78,7 +84,11 @@ class LCD:
 
     def getviewport(self):
         return (self.SCX, self.SCY)
-
+    
+    #Add set get
+    #     def set(self):
+        
+    #     def get(self):
 
 class PaletteRegister:
     def __init__(self, value):
