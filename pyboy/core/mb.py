@@ -215,7 +215,7 @@ class Motherboard:
         elif 0x4000 <= i < 0x8000: # 16kB switchable ROM bank
             return self.cartridge.getitem(i)
         elif 0x8000 <= i < 0xA000: # 8kB Video RAM
-            return self.lcd.LCD.getVRAM(i)
+            return self.lcd.getVRAM(i)
         elif 0xA000 <= i < 0xC000: # 8kB switchable RAM bank
             return self.cartridge.getitem(i)
         elif 0xC000 <= i < 0xE000: # 8kB Internal RAM
@@ -281,7 +281,7 @@ class Motherboard:
             # Doesn't change the data. This is for MBC commands
             self.cartridge.setitem(i, value)
         elif 0x8000 <= i < 0xA000: # 8kB Video RAM
-            self.lcd.LCD.setVRAM(i, value) 
+            self.lcd.setVRAM(i, value) 
             if i < 0x9800: # Is within tile data -- not tile maps
                 # Mask out the byte of the tile
                 self.renderer.tiles_changed.add(i & 0xFFF0)
