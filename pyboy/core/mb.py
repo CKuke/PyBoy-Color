@@ -7,7 +7,7 @@ import logging
 
 from pyboy.utils import STATE_VERSION
 
-from . import bootrom, cartridge, cpu, interaction, lcd, ram, sound, timer, cgb_lcd
+from . import bootrom, cartridge, cpu, interaction, lcd, base_ram, sound, timer, cgb_lcd, cgb_ram
 
 logger = logging.getLogger(__name__)
 
@@ -26,13 +26,16 @@ class Motherboard:
         self.interaction = interaction.Interaction()
         self.cartridge = cartridge.load_cartridge(gamerom_file)
         self.bootrom = bootrom.BootROM(bootrom_file)
-        self.ram = ram.RAM(random=False)
         self.cpu = cpu.CPU(self, profiling)
         
         if self.cartridge.is_cgb:
+            logger.info("Started as Game Boy Color")
             self.lcd = cgb_lcd.cgbLCD()
+            self.ram = cgb_ram.CgbRam(random=False)
         else:
+            logger.info("Started as Game Boy")
             self.lcd = lcd.LCD()
+            self.ram = base_ram.RAM(random=False)
 
         self.lcd = lcd.LCD()
         self.renderer = lcd.Renderer(color_palette)
@@ -219,14 +222,17 @@ class Motherboard:
         elif 0xA000 <= i < 0xC000: # 8kB switchable RAM bank
             return self.cartridge.getitem(i)
         elif 0xC000 <= i < 0xE000: # 8kB Internal RAM
-            return self.ram.internal_ram0[i - 0xC000]
+            #return self.ram.internal_ram0[i - 0xC000]
+            return self.ram.read(i)
         elif 0xE000 <= i < 0xFE00: # Echo of 8kB Internal RAM
             # Redirect to internal RAM
-            return self.getitem(i - 0x2000)
+            #return self.getitem(i - 0x2000)
+            return self.ram.read(i)
         elif 0xFE00 <= i < 0xFEA0: # Sprite Attribute Memory (OAM)
             return self.lcd.OAM[i - 0xFE00]
         elif 0xFEA0 <= i < 0xFF00: # Empty but unusable for I/O
-            return self.ram.non_io_internal_ram0[i - 0xFEA0]
+            #return self.ram.non_io_internal_ram0[i - 0xFEA0]
+            return self.ram.read(i)
         elif 0xFF00 <= i < 0xFF4C: # I/O ports
             if i == 0xFF04:
                 return self.timer.DIV
@@ -261,13 +267,17 @@ class Motherboard:
             elif i == 0xFF4F and self.cartridge.is_cgb:
                 return self.lcd.VBK.value
             else:
-                return self.ram.io_ports[i - 0xFF00]
+                #return self.ram.io_ports[i - 0xFF00]
+                return self.ram.read(i)
         elif 0xFF4C <= i < 0xFF80: # Empty but unusable for I/O
-            return self.ram.non_io_internal_ram1[i - 0xFF4C]
+            #return self.ram.non_io_internal_ram1[i - 0xFF4C]
+            return self.ram.read(i)
         elif 0xFF80 <= i < 0xFFFF: # Internal RAM
-            return self.ram.internal_ram1[i - 0xFF80]
+            #return self.ram.internal_ram1[i - 0xFF80]
+            return self.ram.read(i)
         elif i == 0xFFFF: # Interrupt Enable Register
-            return self.ram.interrupt_register[0]
+            #return self.ram.interrupt_register[0]
+            return self.ram.read(i)
         else:
             raise IndexError("Memory access violation. Tried to read: %s" % hex(i))
 
@@ -287,20 +297,22 @@ class Motherboard:
                 self.renderer.tiles_changed.add(i & 0xFFF0)
         elif 0xA000 <= i < 0xC000: # 8kB switchable RAM bank
             self.cartridge.setitem(i, value)
-        elif 0xC000 <= i < 0xE000: # 8kB Internal RAM
-            self.ram.internal_ram0[i - 0xC000] = value
+        elif 0xC000 <= i < 0xE000: # Internal RAM
+            self.ram.write(i, value)
         elif 0xE000 <= i < 0xFE00: # Echo of 8kB Internal RAM
-            self.setitem(i - 0x2000, value) # Redirect to internal RAM
+            self.ram.write(i, value)
         elif 0xFE00 <= i < 0xFEA0: # Sprite Attribute Memory (OAM)
             self.lcd.OAM[i - 0xFE00] = value
         elif 0xFEA0 <= i < 0xFF00: # Empty but unusable for I/O
-            self.ram.non_io_internal_ram0[i - 0xFEA0] = value
+            self.ram.write(i, value)
         elif 0xFF00 <= i < 0xFF4C: # I/O ports
             if i == 0xFF00:
-                self.ram.io_ports[i - 0xFF00] = self.interaction.pull(value)
+                #self.ram.io_ports[i - 0xFF00] = self.interaction.pull(value)
+                self.ram.write(i, self.interaction.pull(value))
             elif i == 0xFF01:
                 self.serialbuffer += chr(value)
-                self.ram.io_ports[i - 0xFF00] = value
+                #self.ram.io_ports[i - 0xFF00] = value
+                self.ram.write(i, value)
             elif i == 0xFF04:
                 self.timer.DIV = 0
             elif i == 0xFF05:
@@ -337,15 +349,19 @@ class Motherboard:
             elif i == 0xFF4F and self.cartridge.is_cgb:
                 self.lcd.VBK.set(value)
             else:
-                self.ram.io_ports[i - 0xFF00] = value
+                #self.ram.io_ports[i - 0xFF00] = value
+                self.ram.write(i, value)
         elif 0xFF4C <= i < 0xFF80: # Empty but unusable for I/O
             if self.bootrom_enabled and i == 0xFF50 and value == 0x1 or value == 0x11: #0x11 for gameboy color
                 self.bootrom_enabled = False
-            self.ram.non_io_internal_ram1[i - 0xFF4C] = value
+            #self.ram.non_io_internal_ram1[i - 0xFF4C] = value
+            self.ram.write(i, value)
         elif 0xFF80 <= i < 0xFFFF: # Internal RAM
-            self.ram.internal_ram1[i - 0xFF80] = value
+            #self.ram.internal_ram1[i - 0xFF80] = value
+            self.ram.write(i, value)
         elif i == 0xFFFF: # Interrupt Enable Register
-            self.ram.interrupt_register[0] = value
+            #self.ram.interrupt_register[0] = value
+            self.ram.write(i, value)
         else:
             raise Exception("Memory access violation. Tried to write: %s" % hex(i))
 

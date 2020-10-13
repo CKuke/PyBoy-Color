@@ -1,7 +1,7 @@
 import array
-from base_ram import RAM
+from . import base_ram
 
-class CgbRam(RAM):
+class CgbRam(base_ram.RAM):
     def __init__(self, random=False):
         super().__init__(random)
 
@@ -10,39 +10,35 @@ class CgbRam(RAM):
             self.wram.append(array.array("B", [0]*4096))
         
     
-    def __read_wram(self, addr):
+    def read_wram(self, addr):
         if 0xC000 <= addr and addr < 0xD000:
-            return self.wram[0][addr]
+            offset = 0xC000
+            return self.wram[0][addr-offset]
         else:
             # Read which bank to read from at FF70
             io_offset = 0xFF00
             bank_addr = 0xFF70 - io_offset
-            bank = self.__read_io(bank_addr)
-            if bank > 0x07:
+            bank = self.read_io(bank_addr)
+            bank &= 0x3
+            if bank == 0x0:
                 bank = 0x01
-            return self.wram[bank][addr]
-    
-    def __write_wram(self, addr, val):
-        if 0xC000 <= addr and addr < 0xD000:
-            self.wram[0][addr] = val
-        else:
-            # Read which bank to read from at FF70
-            io_offset = 0xFF00
-            bank_addr = 0xFF70 - io_offset
-            bank = self.__read_io(bank_addr)
-            if bank > 0x07:
-                bank = 0x01
-            self.wram[bank][addr] = val
+            offset = 0xD000
+            return self.wram[bank][addr-offset]
         
-
-# TODO: Delete all below when finished testing
-# ram = CgbRam()
-# print(len(ram.wram))
-# for i in range(len(ram.wram)):
-#     print(len(ram.wram[i]))
-
-# print("----------------------")
-# print(ram.read(0xffff))
+    def write_wram(self, addr, val):
+        if 0xC000 <= addr and addr < 0xD000:
+            offset = 0xC000
+            self.wram[0][addr-offset] = val
+        else:
+            # Read which bank to read from at FF70
+            io_offset = 0xFF00
+            bank_addr = 0xFF70 - io_offset
+            bank = self.read_io(bank_addr)
+            bank &= 0x3
+            if bank == 0x0:
+                bank = 0x01
+            offset = 0xD000
+            self.wram[bank][addr-offset] = val
 
 
         
