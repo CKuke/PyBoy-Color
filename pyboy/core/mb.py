@@ -7,7 +7,7 @@ import logging
 
 from pyboy.utils import STATE_VERSION
 
-from . import bootrom, cartridge, cpu, interaction, lcd, base_ram, sound, timer, cgb_lcd, cgb_ram
+from . import bootrom, cartridge, cpu, interaction, lcd, base_ram, sound, timer, cgb_lcd, cgb_ram, renderer
 
 logger = logging.getLogger(__name__)
 
@@ -32,13 +32,13 @@ class Motherboard:
             logger.info("Started as Game Boy Color")
             self.lcd = cgb_lcd.cgbLCD()
             self.ram = cgb_ram.CgbRam(random=False)
+
         else:
             logger.info("Started as Game Boy")
             self.lcd = lcd.LCD()
             self.ram = base_ram.RAM(random=False)
 
-        self.lcd = lcd.LCD()
-        self.renderer = lcd.Renderer(color_palette)
+        self.renderer = renderer.Renderer(color_palette, self.cartridge.is_cgb)
         self.disable_renderer = disable_renderer
         self.sound_enabled = sound_enabled
         if sound_enabled:

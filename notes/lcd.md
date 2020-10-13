@@ -8,7 +8,7 @@ Bit 0 has different interpretation for CGB. DMG: enables background. CGB: backgr
 Same, but during mode 3 can't access CGB palette Data neither
 
 **Color Registers**
-*DMG* uses three registers FF47-FF49: BGP, OBP0 and OPB1 to assign gray shades
+*DMG* uses three registers FF47-FF49: BGP, OBP0 and OPB1 to assign gray shades. *NOTE* these are actually also used in CGB to assign colors to monochrome game boy games, using the table located in the boot-ROM. Can also be chosen by user input. *Source*: https://tcrf.net/Notes:Game_Boy_Color_Bootstrap_ROM#Assigned_Palette_Configurations
 
 *CGB* uses four registers FF68-FF6B: BCPS/BGPI, BCPD/BGPD, OCPS/OBPI and OCPD/OBPD. The first two are used to control background palette memory, the last two is for sprite palettes
 
@@ -25,12 +25,14 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - Bit 7: BG-to-OAM Priority
 
 ### TODO
-- Implement video banking in CGB
-- FF40 Control Register change bit 0 implementation: render_screen method in renderer class currently uses the background_enable bit, change this to make background rendering loose priority when CGB 
+- REMEMBER TO REMOVE: Added temporary NoOffsetgetVRAM methods to lcd classes to avoid out of range error when fetching wt and bt values in render_screen in renderer.py
+- LCDC FF40 Control Register change bit 0 implementation: render_screen method in renderer class currently uses the background_enable bit, change this to make background rendering loose priority when CGB 
 - FF41 Stat is currently in MB, move to LCD? Does mode 3 need to be extented to account for the fact that CGB palette data can't be accessed?
 - FF44/45 LY/LYC currently in MB, move to base_lcd?
-- FF46 DMA OAM transfers currently in MB, move to base_lcd? Especially because CGB also adds VRAM DMA transfer functionality, where to put that then -> maybe have base_lcd class afterall
+- FF46 DMA OAM transfers currently in MB, move to base_lcd? Especially because CGB also adds VRAM DMA transfer functionality, where to put that then
 - maybe delete the VBK def at top of cgb_lcd, not used? 
+- save/load state methods for CGB
+- lidt forvirrende at der i cgb_lcd VBKregister både bliver læst ofte fra __active_bank, men der også er en get method. Forskellen er når man bare skal bruge active_bank værdien og når programmet egentligt prøver at læse fra registret 
 
 
 ### Notes
@@ -66,5 +68,7 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - Added check in motherboard init if should load CGB or DMG LCD
 - Added register FF4F set/get to memory manager
 - Added set/get VRAM to mem manager 
+- moved renderer to own class
+- cgb_lcd inherits from and initializes lcd.py 
 
 
