@@ -75,7 +75,7 @@ class RAM:
         elif addr == 0xFFFF:
             self.write_interrupt(val)
         else:
-            raise Exception("Cannot read write to {:x} in ram".format(addr))
+            raise Exception("Cannot write to {:x} in ram".format(addr))
     
     def write_wram(self, addr, val):
         if 0xC000 <= addr and addr < 0xD000:

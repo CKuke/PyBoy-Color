@@ -19,7 +19,7 @@ class CgbRam(base_ram.RAM):
             io_offset = 0xFF00
             bank_addr = 0xFF70 - io_offset
             bank = self.read_io(bank_addr)
-            bank &= 0x3
+            bank &= 0b111
             if bank == 0x0:
                 bank = 0x01
             offset = 0xD000
@@ -34,7 +34,7 @@ class CgbRam(base_ram.RAM):
             io_offset = 0xFF00
             bank_addr = 0xFF70 - io_offset
             bank = self.read_io(bank_addr)
-            bank &= 0x3
+            bank &= 0b111
             if bank == 0x0:
                 bank = 0x01
             offset = 0xD000
