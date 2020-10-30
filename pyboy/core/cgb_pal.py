@@ -1,4 +1,4 @@
-simport array
+import array
 
 
 
@@ -18,7 +18,7 @@ class PaletteRam:
         for col in range(4):
             current = self.BG[pal+col] & 0b0111111111111111 # 15 ones
             colors.append(current) 
-        return pallete(colors)
+        return Pallete(colors)
     
     def get_obj(self):
         # TODO: Should we have a check like in BG method?
@@ -26,7 +26,7 @@ class PaletteRam:
         for col in range(4):
             current = self.OBJ[pal+col] & 0b0111111111111111 # 15 ones
             colors.append(current) 
-        return palette(colors)
+        return Palette(colors)
 
 
 # Wrapper class for easy handling of color palettes
