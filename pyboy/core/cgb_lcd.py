@@ -53,7 +53,6 @@ class VBKregister:
         #when writing to VBK, bit 0 indicates which bank to switch to
         bank = value & 1
         self._switch_bank(bank)
-        self.active_bank = bank
 
     def get(self):
         #reading from this register returns current VRAM bank in bit 0, other bits = 1
@@ -63,4 +62,6 @@ class VBKregister:
         if bank == self.active_bank:
             return
         else:
-            self.active_bank = bank ^ 1
+            self.active_bank = bank
+
+#load save functions
