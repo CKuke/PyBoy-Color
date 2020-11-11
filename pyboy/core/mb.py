@@ -7,7 +7,7 @@ import logging
 
 from pyboy.utils import STATE_VERSION
 
-from . import bootrom, cartridge, cpu, interaction, lcd, base_ram, sound, timer, cgb_lcd, cgb_ram, renderer, mem_manager
+from . import bootrom, cartridge, cpu, interaction, lcd, base_ram, sound, timer, cgb_lcd, cgb_ram, renderer, cgb_renderer, mem_manager
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,6 @@ class Motherboard:
 
         if profiling:
             logger.info("Profiling enabled")
-
         self.timer = timer.Timer()
         self.interaction = interaction.Interaction()
         self.cartridge = cartridge.load_cartridge(gamerom_file)
@@ -30,10 +29,10 @@ class Motherboard:
 
         self.sound_enabled = sound_enabled
         self.sound = sound.Sound()
-        self.renderer = renderer.Renderer(color_palette, self.cartridge.is_cgb)
         
         if self.cartridge.is_cgb:
             logger.info("Started as Game Boy Color")
+            self.renderer = cgb_renderer.Renderer(color_palette)
             self.lcd = cgb_lcd.cgbLCD()
             self.ram = cgb_ram.CgbRam(random=False)
             # TODO: change to cgb mem manager when created
@@ -44,6 +43,7 @@ class Motherboard:
 
         else:
             logger.info("Started as Game Boy")
+            self.renderer = cgb_renderer.Renderer(color_palette)
             self.lcd = lcd.LCD()
             self.ram = base_ram.RAM(random=False)
             self.mem_manager = mem_manager.MemoryManager(

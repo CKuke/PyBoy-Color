@@ -22,7 +22,7 @@ class Renderer:
         self.clearcache = False
         self.tiles_changed = set([])
 
-        tiles = 384
+        tiles = 768
         
         # Init buffers as white
         self._screenbuffer_raw = array("B", [0xFF] * (ROWS*COLS*4))
@@ -130,6 +130,7 @@ class Renderer:
                     x -= 8
                 y += 1
 
+#REMOVE ME: CLEAR CACHE SET ON UPDATE TO PALETTE REGISTERS IN MB MEMORY MANAGER?
     def update_cache(self, lcd):
         if self.clearcache:
             self.tiles_changed.clear()

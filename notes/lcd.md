@@ -32,7 +32,8 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - FF46 DMA OAM transfers currently in MB, move to base_lcd? Especially because CGB also adds VRAM DMA transfer functionality, where to put that then
 - maybe delete the VBK def at top of cgb_lcd, not used? 
 - save/load state methods for CGB
-- lidt forvirrende at der i cgb_lcd VBKregister både bliver læst ofte fra __active_bank, men der også er en get method. Forskellen er når man bare skal bruge active_bank værdien og når programmet egentligt prøver at læse fra registret 
+- lidt forvirrende at der i cgb_lcd VBKregister både bliver læst ofte fra __active_bank, men der også er en get method. Forskellen er når man bare skal bruge active_bank værdien og når programmet egentligt prøver at læse fra registret
+- måske cgb_lcd ikke skal nedarve fra lcd - der er efteråhnden meget få ligheder
 
 
 ### Notes
@@ -69,6 +70,8 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - Added register FF4F set/get to memory manager
 - Added set/get VRAM to mem manager 
 - moved renderer to own class
-- cgb_lcd inherits from and initializes lcd.py 
+- cgb_lcd inherits from and initializes lcd.py
+- added palette memory and appropriate registers to cgb_lcd (needed memory is added to the specific registers, maybe change)
+- added cgb checks to memory manager when trying to use DMG palette registers 
 
 

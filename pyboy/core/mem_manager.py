@@ -56,11 +56,11 @@ class MemoryManager:
                 return self.lcd.SCY
             elif i == 0xFF43:
                 return self.lcd.SCX
-            elif i == 0xFF47:
+            elif i == 0xFF47 and not self.cartridge.is_cgb:
                 return self.lcd.BGP.value
-            elif i == 0xFF48:
+            elif i == 0xFF48 and not self.cartridge.is_cgb:
                 return self.lcd.OBP0.value
-            elif i == 0xFF49:
+            elif i == 0xFF49 and not self.cartridge.is_cgb:
                 return self.lcd.OBP1.value
             elif i == 0xFF4A:
                 return self.lcd.WY
@@ -68,7 +68,7 @@ class MemoryManager:
                 return self.lcd.WX
             #Get current VRAM bank, CGB check probably redundant
             elif i == 0xFF4F and self.cartridge.is_cgb:
-                return self.lcd.VBK.value
+                return self.lcd.VBK.get()
             else:
                 #return self.ram.io_ports[i - 0xFF00]
                 return self.ram.read(i)
