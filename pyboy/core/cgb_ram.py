@@ -4,6 +4,7 @@ from . import base_ram
 class CgbRam(base_ram.RAM):
     def __init__(self, random=False):
         super().__init__(random)
+        self.svbk = SVBKregister()
 
         # Initialize CGB 8 WRAM banks
         for i in range(6):
@@ -41,4 +42,17 @@ class CgbRam(base_ram.RAM):
             self.wram[bank][addr-offset] = val
 
 
-        
+
+
+class SVBKregister:
+    def __init__(self):
+        self.active_bank = 1
+
+    def set_bank(bank):
+        self.active_bank = bank
+
+    def get_bank():
+        if self.active_bank == 0:
+            return 1
+        else:
+            return active_bank   
