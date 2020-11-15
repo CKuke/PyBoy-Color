@@ -7,7 +7,7 @@ import logging
 
 from pyboy.utils import STATE_VERSION
 
-from . import bootrom, cartridge, cpu, interaction, lcd, base_ram, sound, timer, cgb_lcd, cgb_ram, renderer, cgb_renderer, mem_manager
+from . import bootrom, cartridge, cpu, interaction, lcd, base_ram, sound, timer, cgb_lcd, cgb_ram, renderer, cgb_renderer, mem_manager, cgb_mem_manager
 
 logger = logging.getLogger(__name__)
 
@@ -35,8 +35,7 @@ class Motherboard:
             self.renderer = cgb_renderer.Renderer(color_palette)
             self.lcd = cgb_lcd.cgbLCD()
             self.ram = cgb_ram.CgbRam(random=False)
-            # TODO: change to cgb mem manager when created
-            self.mem_manager = mem_manager.MemoryManager(
+            self.mem_manager = cgb_mem_manager.CgbMemoryManager(
                 self, self.bootrom, self.cartridge, 
                 self.lcd, self.timer, self.sound, self.ram,
                 self.renderer) 

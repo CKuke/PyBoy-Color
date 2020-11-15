@@ -17,7 +17,7 @@ class RAM:
         self.not_usable = array.array("B", [0]*0x60)
 
     #TODO: Finish read and write
-    def read(self, addr):
+    def read(self, addr):    
         if 0xC000 <= addr and addr < 0xE000:
             return self.read_wram(addr)
         elif 0xE000 <= addr and addr < 0xFE00:
