@@ -224,11 +224,3 @@ class Motherboard:
 
     def setitem(self, i, value):
         self.mem_manager.setitem(i, value)
-
-    def transfer_DMA(self, src):
-        # http://problemkaputt.de/pandocs.htm#lcdoamdmatransfers
-        # TODO: Add timing delay of 160µs and disallow access to RAM!
-        dst = 0xFE00
-        offset = src * 0x100
-        for n in range(0xA0):
-            self.setitem(dst + n, self.getitem(n + offset))

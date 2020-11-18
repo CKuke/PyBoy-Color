@@ -119,7 +119,7 @@ class MemoryManager:
         elif addr == 0xFF43:
             self.lcd.SCX = value
         elif addr == 0xFF46:
-            self.mb.transfer_DMA(value)
+            self.transfer_DMA(value)
         elif addr == 0xFF47:
             # TODO: Move out of MB
             self.renderer.clearcache |= self.lcd.BGP.set(value)
@@ -139,6 +139,14 @@ class MemoryManager:
         else:
             self.ram.write(addr, value)
             # TODO: exception?
+
+    def transfer_DMA(self, src):
+        # http://problemkaputt.de/pandocs.htm#lcdoamdmatransfers
+        # TODO: Add timing delay of 160µs and disallow access to RAM!
+        dst = 0xFE00
+        offset = src * 0x100
+        for n in range(0xA0):
+            self.setitem(dst + n, self.getitem(n + offset))
 
     # Helper function to make getitem/setitem cleaner
     def is_in_ram(self, addr):
