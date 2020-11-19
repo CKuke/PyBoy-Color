@@ -1,13 +1,6 @@
 from array import array
 from . import lcd
 
-## MAYBE JUST REMOVE ALL THESE?
-# CGB registers for background/sprite palettes
-BCPS, BCPD, OCPS, OCPD = range(0xFF68, 0xFF6C)
-# CGB registers for VRAM DMA transfers
-HDMA1, HDMA2, HDMA3, HDMA4, HDMA5 = range(0xFF51, 0xFF56)
-# Register used to change VRAM banks
-VBK = 0xFF4F
 # Palette memory = 4 colors of 2 bytes define colors for a palette, 8 different palettes
 PALETTE_MEM_SIZE = 0x40
 PALETTE_MEM_MAX_INDEX = 0x3f
@@ -122,10 +115,11 @@ class PaletteColorRegister:
     def get(self):
         return self.palette[self.index_reg.getindex()]
     
-    def getcolor(self, regindex, colorindex):
-        return self.lookup[regindex][colorindex]
-        
-
-    ### Add functions to get values from BGP/OCP 0-7 ###
+    def getcolor(self, paletteindex, colorindex):
+        #each palette = 8 bytes or 4 colors of 2 bytes
+        i = paletteindex * 8 + colorindex * 2
+        byte1 = self.palette[i] 
+        byte2 = self.palette[i + 1]
+        return (byte1 << 8) + byte2
 
 #load save functions

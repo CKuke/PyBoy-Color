@@ -13,8 +13,12 @@ except ImportError:
 class Renderer:
     def __init__(self, color_palette):
         self.alphamask = 0xFF
-
-        self.color_palette = [(c << 8) | self.alphamask for c in color_palette]
+        
+        ############ TESTING TESTING TESTING TESTING TESTING #################        
+        self.test = [0xFFFFFF, 0x999999, 0x555555, 0x000000]
+        self.color_palette = [(c << 8) | self.alphamask for c in self.test]
+        ############ TESTING TESTING TESTING TESTING TESTING #################
+        
         self.color_format = "RGBA"
 
         self.buffer_dims = (ROWS, COLS)
@@ -148,6 +152,8 @@ class Renderer:
                 for x in range(8):
                     colorcode = color_code(byte1, byte2, 7 - x)
 
+                    #DONT INDEX IN COLOR_PALETTE HERE: 
+                    #FETCH COLOR VALUE DIRECTLY FROM APPROPRIATE LCD REGISTERS USING getcolor(reg, colorcode)
                     self._tilecache[y][x] = self.color_palette[lcd.BGP.getcolor(colorcode)]
                     self._spritecache0[y][x] = self.color_palette[lcd.OBP0.getcolor(colorcode)]
                     self._spritecache1[y][x] = self.color_palette[lcd.OBP1.getcolor(colorcode)]

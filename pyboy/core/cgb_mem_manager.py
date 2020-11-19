@@ -104,6 +104,14 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         # CGB registers
         elif addr == 0xFF4F:
             self.lcd.vbk.set(value)
+        elif addr == 0xFF68:
+            return self.lcd.bcps.set()
+        elif addr == 0xFF69:
+            return self.lcd.bcpd.set() 
+        elif addr == 0xFF6A:
+            return self.lcd.ocps.set()
+        elif addr == 0xFF6B:
+            return self.lcd.ocpd.set()        
         elif addr == 0xFF70:
             self.ram.write(addr, value)
         elif 0xFF51 <= addr <= 0xFF54:

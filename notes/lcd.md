@@ -32,7 +32,6 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - FF46 DMA OAM transfers currently in MB, move to base_lcd? Especially because CGB also adds VRAM DMA transfer functionality, where to put that then
 - maybe delete the VBK def at top of cgb_lcd, not used? 
 - save/load state methods for CGB
-- lidt forvirrende at der i cgb_lcd VBKregister både bliver læst ofte fra __active_bank, men der også er en get method. Forskellen er når man bare skal bruge active_bank værdien og når programmet egentligt prøver at læse fra registret
 - måske cgb_lcd ikke skal nedarve fra lcd - der er efteråhnden meget få ligheder
 - Tilføjet tiles_changed for hver bank, men clearcache er stadig samlet, kunne nok godt opdateres så det kun er den relevante bank der bliver clearet og ikke begge to, ville i hvert fald være hurtigere. Clearcache sættes i memory manager
 
@@ -83,3 +82,9 @@ tilecache:
 - instead of tiles_changed then keep track of tiles_changed_bank0/!
 
 
+FIND FORHOLD MELLEM FARVER:
+PÅ EN MODERNE MASKINE: 24 BIT
+PÅ CGB: 15 BIT
+
+ADD CLEAR CACHE IN MEM_MANAGER VED DE NYE FARVE REGISTRE?
+    - SLET DE DMG FARVE REGISTRE?
