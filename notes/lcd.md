@@ -34,7 +34,7 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - save/load state methods for CGB
 - lidt forvirrende at der i cgb_lcd VBKregister både bliver læst ofte fra __active_bank, men der også er en get method. Forskellen er når man bare skal bruge active_bank værdien og når programmet egentligt prøver at læse fra registret
 - måske cgb_lcd ikke skal nedarve fra lcd - der er efteråhnden meget få ligheder
-
+- Tilføjet tiles_changed for hver bank, men clearcache er stadig samlet, kunne nok godt opdateres så det kun er den relevante bank der bliver clearet og ikke begge to, ville i hvert fald være hurtigere. Clearcache sættes i memory manager
 
 ### Notes
 **Sprites**: 8x8 or 8x16 tiles, 4 bytes
@@ -72,6 +72,8 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - moved renderer to own class
 - cgb_lcd inherits from and initializes lcd.py
 - added palette memory and appropriate registers to cgb_lcd (needed memory is added to the specific registers, maybe change)
-- added cgb checks to memory manager when trying to use DMG palette registers 
+- added cgb checks to memory manager when trying to use DMG palette registers
+- updated setVRAM methods to return the bank that was set in order to compensate for mm
+- instead of tiles_changed then keep track of tiles_changed_bank0/!
 
 

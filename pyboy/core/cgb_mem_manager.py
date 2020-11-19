@@ -43,7 +43,7 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             return self.lcd.WX
         # CGB registers
         elif addr == 0xFF4F:
-            return self.lcd.getVBANK()
+            return self.lcd.vbk.get()
         elif addr == 0xFF70:
             return self.ram.read(addr)
         elif 0xFF51 <= addr <= 0xFF55:
@@ -112,16 +112,10 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         data_len = ((value & 0x7F) + 1) * 16
         transfer_type = (value & 0x80) >> 7
 
-        print("HDMA src = %s" % hex(src))
-        print("HDMA dst = %s" % hex(dst))
-        print("len = %s" % hex(data_len))
-
         if transfer_type == 0:
-            print("general purpose")
             for n in range(data_len):
                 self.setitem(dst + n, self.getitem(src + n))
         elif transfer_type == 1:
-            print("h-blank transfer")
             for n in range(data_len):
                 self.setitem(dst + n, self.getitem(src + n))
                 
