@@ -3,6 +3,12 @@ from . import mem_manager
 class CgbMemoryManager(mem_manager.MemoryManager):
     def __init__(self, mb, bootrom, cartridge, lcd, timer, sound, ram, renderer):
         super().__init__(mb, bootrom, cartridge, lcd, timer, sound, ram, renderer)
+
+        self.hdma1 = 0
+        self.hdma2 = 0
+        self.hdma3 = 0
+        self.hdma4 = 0
+        self.hdma5 = 0
     
     def get_io(self, addr):
         #print("%3s %6s" % ("get", hex(addr)))
@@ -40,16 +46,8 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             return self.lcd.getVBANK()
         elif addr == 0xFF70:
             return self.ram.read(addr)
-        elif addr == 0xFF51:
-            print("HDAM1 get")
-        elif addr == 0xFF52:
-            print("HDAM2 get")
-        elif addr == 0xFF53:
-            print("HDAM3 get")
-        elif addr == 0xFF54:
-            print("HDAM4 get")
-        elif addr == 0xFF55:
-            print("HDAM5 get")
+        elif 0xFF51 <= addr <= 0xFF55:
+            return self.get_hdma(addr)
         else:
             return self.ram.read(addr)
 
@@ -78,7 +76,7 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         elif addr == 0xFF43:
             self.lcd.SCX = value
         elif addr == 0xFF46:
-            self.mb.transfer_DMA(value)
+            self.transfer_DMA(value)
         elif addr == 0xFF47:
             # TODO: Move out of MB
             self.renderer.clearcache |= self.lcd.BGP.set(value)
@@ -100,16 +98,49 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             self.lcd.vbk.set(value)
         elif addr == 0xFF70:
             self.ram.write(addr, value)
-        elif addr == 0xFF51:
-            print("HDAM1 set")
-        elif addr == 0xFF52:
-            print("HDAM2 set")
-        elif addr == 0xFF53:
-            print("HDAM3 set")
-        elif addr == 0xFF54:
-            print("HDAM4 set")
+        elif 0xFF51 <= addr <= 0xFF54:
+            self.set_hdma(addr, value)
         elif addr == 0xFF55:
-            print("HDAM5 set")
+            self.transfer_hdma(value)
         else:
             self.ram.write(addr, value)
 
+
+    def transfer_hdma(self, value):
+        src = (((self.hdma1 << 8) + self.hdma2) & 0xFFF0)
+        dst = (((self.hdma3 << 8) + self.hdma4) & 0x1FF0) + 0x8000
+        data_len = ((value & 0x7F) + 1) * 16
+        transfer_type = (value & 0x80) >> 7
+
+        print("HDMA src = %s" % hex(src))
+        print("HDMA dst = %s" % hex(dst))
+        print("len = %s" % hex(data_len))
+
+        if transfer_type == 0:
+            print("general purpose")
+            for n in range(data_len):
+                self.setitem(dst + n, self.getitem(src + n))
+        elif transfer_type == 1:
+            print("h-blank transfer")
+            for n in range(data_len):
+                self.setitem(dst + n, self.getitem(src + n))
+                
+
+
+
+
+    def get_hdma(self, reg):
+        if 0xFF51 <= reg <= 0xFF54:
+            raise Exception("Can not read HDMA1-HDMA4")
+        else:
+            return self.hdma5
+
+    def set_hdma(self, reg, value):
+        if reg == 0xFF51:
+            self.hdma1 = value
+        elif reg == 0xFF52:
+            self.hdma2 = value
+        elif reg == 0xFF53:
+            self.hdma3 = value
+        elif reg == 0xFF54:
+            self.hdma4 = value
