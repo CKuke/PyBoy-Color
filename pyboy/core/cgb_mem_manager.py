@@ -44,6 +44,14 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         # CGB registers
         elif addr == 0xFF4F:
             return self.lcd.vbk.get()
+        elif addr == 0xFF68:
+            return self.lcd.bcps.get()
+        elif addr == 0xFF69:
+            return self.lcd.bcpd.get() 
+        elif addr == 0xFF6A:
+            return self.lcd.ocps.get()
+        elif addr == 0xFF6B:
+            return self.lcd.ocpd.get()
         elif addr == 0xFF70:
             return self.ram.read(addr)
         elif 0xFF51 <= addr <= 0xFF55:

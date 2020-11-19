@@ -9,18 +9,22 @@ HDMA1, HDMA2, HDMA3, HDMA4, HDMA5 = range(0xFF51, 0xFF56)
 # Register used to change VRAM banks
 VBK = 0xFF4F
 # Palette memory = 4 colors of 2 bytes define colors for a palette, 8 different palettes
-PALETTE_MEM_SIZE = 64
+PALETTE_MEM_SIZE = 0x40
+PALETTE_MEM_MAX_INDEX = 0x3f
 
 class cgbLCD(lcd.LCD):
     def __init__(self):
         lcd.LCD.__init__(self)
         self.VRAM1 = array("B", [0] * lcd.VBANK_SIZE)
 
+        self.sprite_palette_mem = array("B", [0xFF] * PALETTE_MEM_SIZE)
+        self.bg_palette_mem = array("B", [0xFF] * PALETTE_MEM_SIZE)
+
         self.vbk = VBKregister()
         self.bcps = PaletteIndexRegister()
-        self.bcpd = BCPDRegister()
+        self.bcpd = PaletteColorRegister(self.bg_palette_mem, self.bcps)
         self.ocps = PaletteIndexRegister()
-        self.ocpd = OCPDRegister()
+        self.ocpd = PaletteColorRegister(self.sprite_palette_mem, self.ocps)
  
     def setVRAM(self, i, value):
         if self.vbk.active_bank == 0:
@@ -71,63 +75,57 @@ class VBKregister:
             self.active_bank = bank
 
 class PaletteIndexRegister:
-    def __init__(self, value = 0):
-        self.val = value
-        self.index = 0x0
+    def __init__(self, val = 0):
+        self.value = val
+        self.index = 0
         self.auto_inc = 0
 
-    def set(self, value):
-        if self.val == value:
+    def set(self, val):
+        if self.value == val:
             return
 
-        self.val = value
+        self.value = val
         #bit 0-5 define index
-        self.index = value & 0b111111
+        self.index = val & 0b111111
         #bit 7 define auto increment
-        self.auto_inc = value & 0b10000000 
+        self.auto_inc = val & 0b10000000 
 
     def get(self):
-        return self.val
+        return self.value
     
     def getindex(self):
         return self.index
 
     def _inc_index(self):
-        self.index += 1
+        #what happens if increment is set and index is at max 0x3F?
+        #maybe it wraps around? --> modulo
+        if not self.index == PALETTE_MEM_MAX_INDEX:
+            self.index += 1
 
     def shouldincrement(self):
-        #what happens if increment is set and index is at max 0x3F?
-        if self.auto_inc and not self.index == 0x3F:
+        if self.auto_inc:
             self._inc_index()
 
-class BCPDRegister:
-    def __init__(self, value = 0):
-        #palettes initalized as white
-        self.bg_palette_mem = array("B", [0xFF] * PALETTE_MEM_SIZE)
-            
-    def set(self, value, bcps):
-        self.bg_palette_mem[bcps.getindex()] = value
+class PaletteColorRegister:
+    def __init__(self, palette, i_reg, val = 0):
+        self.value = val
+        self.palette = palette
+        self.index_reg = i_reg
+        #BGP/OCP 0-7
+        self.lookup = [[0] * 4 for i in range(8)]
+
+    def set(self, val):
+        self.palette[self.index_reg.getindex()] = val
         #check for autoincrement after write
-        bcps.shouldincrement()
+        self.index_reg.shouldincrement()
     
-    def get(self, bcps):
-        return self.bg_palette_mem[bcps.getindex()]
+    def get(self):
+        return self.palette[self.index_reg.getindex()]
     
-    ### Add functions to get values from BGP0-7 ###
+    def getcolor(self, regindex, colorindex):
+        return self.lookup[regindex][colorindex]
+        
 
-class OCPDRegister:
-    def __init__(self, value = 0):
-        self.sprite_palette_mem = array("B", [0xFF] * PALETTE_MEM_SIZE)
-
-    def set(self, value, ocps):
-        self.sprite_palette_mem[ocps.getindex()] = value
-        #check for autoincrement after write
-        ocps.shouldincrement()
-    
-    def get(self, ocps):
-        return self.sprite_palette_mem[ocps.getindex()]
-
-    ### Add functions to get values from OPB0-7 ###
-
+    ### Add functions to get values from BGP/OCP 0-7 ###
 
 #load save functions

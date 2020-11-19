@@ -25,6 +25,7 @@ class Renderer:
         tiles = 768
         
         # Init buffers as white
+        # *4 because palettes are 4 colors?
         self._screenbuffer_raw = array("B", [0xFF] * (ROWS*COLS*4))
         self._tilecache_raw = array("B", [0xFF] * (tiles*8*8*4))
         self._spritecache0_raw = array("B", [0xFF] * (tiles*8*8*4))
@@ -133,7 +134,7 @@ class Renderer:
 #REMOVE ME: CLEAR CACHE SET ON UPDATE TO PALETTE REGISTERS IN MB MEMORY MANAGER?
     def update_cache(self, lcd):
         if self.clearcache:
-            self.tiles_changed.clear()
+            self.tiles_changed.clear()  
             for x in range(0x8000, 0x9800, 16):
                 self.tiles_changed.add(x)
             self.clearcache = False
@@ -152,6 +153,7 @@ class Renderer:
                     self._spritecache1[y][x] = self.color_palette[lcd.OBP1.getcolor(colorcode)]
 
                     if colorcode == 0:
+                        #simply sets to 0?
                         self._spritecache0[y][x] &= ~self.alphamask
                         self._spritecache1[y][x] &= ~self.alphamask
 

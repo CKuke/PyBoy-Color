@@ -63,6 +63,12 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 
 **VRAM Indexing Method**: Currently only method 8000 (using $8000 as base pointer) is implemented, but there is also a method 8800 (using $9000 as base pointer), might have to implement this. BG and window can use both modes controlled by LCDC bit 4. 
 
+**Update_cache**: tile = 16 bytes af 8*8 pixels, hver pixel er altså 8 bits stor, angiver hvilke farver der skal til. 
+tilecache:
+    y: 
+
+
+
 ### Changes made
 - Added cgb_lcd class for CGB lcd
 - Added CGB variable to base_mbc, can be used to check if the loaded ROM is a CGB rom
