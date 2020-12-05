@@ -33,7 +33,11 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - maybe delete the VBK def at top of cgb_lcd, not used? 
 - save/load state methods for CGB
 - måske cgb_lcd ikke skal nedarve fra lcd - der er efteråhnden meget få ligheder
-- Tilføjet tiles_changed for hver bank, men clearcache er stadig samlet, kunne nok godt opdateres så det kun er den relevante bank der bliver clearet og ikke begge to, ville i hvert fald være hurtigere. Clearcache sættes i memory manager
+- clearcache er stadig samlet, opdater så det kun er for de relevante (spite eller tile) paletter der opdateres for performance
+- hvis det kører alt for langsomt, så gør så update cache ikke holder dem alle hele tiden, men at de hentes når der er brug for dem
+- hvis farver bugger, så har det nok noget at gøre med omdannelse til CGB farver (bit 0-7 in first byte)
+- spritepriority and not buffer[y][x] == bgpkey
+- hvad er det der alphamask?
 
 ### Notes
 **Sprites**: 8x8 or 8x16 tiles, 4 bytes
@@ -80,6 +84,8 @@ tilecache:
 - added cgb checks to memory manager when trying to use DMG palette registers
 - updated setVRAM methods to return the bank that was set in order to compensate for mm
 - instead of tiles_changed then keep track of tiles_changed_bank0/!
+- caches, en tile / sprite for hver bank, der 3d list nu, da kan holde 8 forskellige paletter hver (måske ikke hurtigste)
+- rgba converter i cgb_renderer, flyt
 
 
 FIND FORHOLD MELLEM FARVER:
@@ -88,3 +94,7 @@ PÅ CGB: 15 BIT
 
 ADD CLEAR CACHE IN MEM_MANAGER VED DE NYE FARVE REGISTRE?
     - SLET DE DMG FARVE REGISTRE?
+
+
+NOTES:
+Endianness, little endian for 16 bit 
