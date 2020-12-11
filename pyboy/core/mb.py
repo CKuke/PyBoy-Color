@@ -42,7 +42,7 @@ class Motherboard:
 
         else:
             logger.info("Started as Game Boy")
-            self.renderer = cgb_renderer.Renderer(color_palette)
+            self.renderer = renderer.Renderer(color_palette)
             self.lcd = lcd.LCD()
             self.ram = base_ram.RAM(random=False)
             self.mem_manager = mem_manager.MemoryManager(

@@ -138,7 +138,7 @@ class Renderer:
             xflip = attributes & 0b00100000
             yflip = attributes & 0b01000000
             spritepriority = (attributes & 0b10000000) and not ignore_priority
-
+            
             #bit 3 selects tile vram-bank
             spritecache = (self._spritecache1 if attributes & 0b1000 else self._spritecache0)
             #bits 0-2 selects palette number
@@ -174,31 +174,40 @@ class Renderer:
 
         for t in self.tiles_changed:
             for k in range(0, 16, 2): # 2 bytes for each line
-                byte1 = lcd.getVRAM(t + k)
-                byte2 = lcd.getVRAM(t + k + 1)
+                bank0_byte1 = lcd.getVRAMbank(t + k, 0)
+                bank0_byte2 = lcd.getVRAMbank(t + k + 1, 0)
+                
+                bank1_byte1 = lcd.getVRAMbank(t + k, 1)
+                bank1_byte2 = lcd.getVRAMbank(t + k + 1, 1)
+                
                 y = (t+k-0x8000) // 2
 
                 for x in range(8):
                     #index into the palette for the current pixel
-                    colorcode = color_code(byte1, byte2, 7 - x)
-
+                    bank0_colorcode = color_code(bank0_byte1, bank0_byte2, 7 - x)
+                    bank1_colorcode = color_code(bank1_byte1, bank1_byte2, 7 - x)
+                    
                     #update for the 8 palettes
                     for p in range(8): 
                         #self._tilecache0[p][y][x] = lcd.bcpd.getcolor(p, colorcode)
                         #self._tilecache1[p][y][x] = lcd.bcpd.getcolor(p, colorcode)
 
-                        self._spritecache0[p][y][x] = self.rgba_converter(lcd.ocpd.getcolor(p, colorcode))
-                        self._spritecache1[p][y][x] = self.rgba_converter(lcd.ocpd.getcolor(p, colorcode))
-
+                        self._spritecache0[p][y][x] = self.rgba_converter(lcd.ocpd.getcolor(p, bank0_colorcode))
+                        self._spritecache1[p][y][x] = self.rgba_converter(lcd.ocpd.getcolor(p, bank1_colorcode))
+                        
+                        #first color transparent for sprites
+                        if bank0_colorcode == 0:
+                            #simply sets to 0?
+                            self._spritecache0[p][y][x] &= ~self.alphamask
+                        
+                        if bank1_colorcode == 0:
+                            self._spritecache1[p][y][x] &= ~self.alphamask
 
                     ### TESTING TESTING TESTING TESTING TESTING TESTING TESTING ####
-                    self._testtilecache[y][x] = self.color_palette[lcd.BGP.getcolor(colorcode)]
+                    self._testtilecache[y][x] = self.color_palette[lcd.BGP.getcolor(bank0_colorcode)]
                     ### TESTING TESTING TESTING TESTING TESTING TESTING TESTING ####
 
-                    # if colorcode == 0:
-                    #     #simply sets to 0?
-                    #     self._testspritecache0[y][x] &= ~self.alphamask
-                    #     self._testspritecache1[y][x] &= ~self.alphamask
+
 
         self.tiles_changed.clear()
 

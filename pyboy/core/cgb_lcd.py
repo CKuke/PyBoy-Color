@@ -2,17 +2,18 @@ from array import array
 from . import lcd
 
 # Palette memory = 4 colors of 2 bytes define colors for a palette, 8 different palettes
-PALETTE_MEM_SIZE = 0x40
 PALETTE_MEM_MAX_INDEX = 0x3f
-
+NUM_PALETTES = 8
+NUM_COLORS = 4
 
 class cgbLCD(lcd.LCD):
     def __init__(self):
         lcd.LCD.__init__(self)
         self.VRAM1 = array("B", [0] * lcd.VBANK_SIZE)
 
-        self.sprite_palette_mem = array("I", [0xFF] * PALETTE_MEM_SIZE)
-        self.bg_palette_mem = array("I", [0xFF] * PALETTE_MEM_SIZE)
+        #8 palettes of 4 colors each 2 bytes
+        self.sprite_palette_mem = array("I", [0xFF] * NUM_PALETTES * NUM_COLORS)
+        self.bg_palette_mem = array("I", [0xFF] * NUM_PALETTES * NUM_COLORS)
 
         self.vbk = VBKregister()
         self.bcps = PaletteIndexRegister()
@@ -28,6 +29,12 @@ class cgbLCD(lcd.LCD):
     
     def getVRAM(self, i):
         if self.vbk.active_bank == 0:
+            return self.VRAM0[i - 0x8000]
+        else:
+            return self.VRAM1[i - 0x8000]
+
+    def getVRAMbank(self, i, bank):
+        if bank == 0:
             return self.VRAM0[i - 0x8000]
         else:
             return self.VRAM1[i - 0x8000]
@@ -65,18 +72,22 @@ class VBKregister:
 class PaletteIndexRegister:
     def __init__(self, val = 0):
         self.value = val
-        self.index = 0
         self.auto_inc = 0
+        self.index = 0
+        self.hl = 0
 
     def set(self, val):
-        if self.value == val:
-            return
-
+#        if self.value == val:
+#            return
         self.value = val
-        #bit 0-5 define index
-        self.index = val & 0b111111
-        #bit 7 define auto increment
-        self.auto_inc = val & 0b10000000 
+        self.hl = val & 0b1
+        self.index = (val >> 1) & 0b11111
+        self.auto_inc = (val >> 7) & 0b1 
+
+        print("hl: %s" %hex(self.hl))
+        print("index: %s" %hex((self.index & 0b11)))
+        print("pal: %s" %hex((self.index >>2)))
+        print("value: %s\n" %hex(self.value))
 
     def get(self):
         return self.value
@@ -84,26 +95,34 @@ class PaletteIndexRegister:
     def getindex(self):
         return self.index
 
+    #hl defines which of the two bytes in a color is needed
+    def gethl(self):
+        return self.hl
+
     def _inc_index(self):
         #what happens if increment is set and index is at max 0x3F?
-        #maybe it wraps around?
-        if not self.index == PALETTE_MEM_MAX_INDEX:
-            self.index += 1
+        #undefined behavior
+        self.index += 1
 
     def shouldincrement(self):
         if self.auto_inc:
-            self._inc_index()
+            #ensure autoinc also set for new val
+            new_val = 0x80 | (self.value + 1) 
+            self.set(new_val)
 
 class PaletteColorRegister:
-    def __init__(self, palette, i_reg, val = 0):
-        #self.value = val
-        self.palette = palette
+    def __init__(self, palette_mem, i_reg):
+        self.palette_mem = palette_mem
         self.index_reg = i_reg
-        #BGP/OCP 0-7 LOOKUP UNUSED, REMOVE?
-        #self.lookup = [[0] * 4 for i in range(8)]
 
     def set(self, val):
-        self.palette[self.index_reg.getindex()] = val
+        hl = self.index_reg.gethl()
+        i_val = self.palette_mem[self.index_reg.getindex()]
+        if hl:                
+            self.palette_mem[self.index_reg.getindex()] = (i_val & 0x00FF) | (val << 8)
+        else:
+            self.palette_mem[self.index_reg.getindex()] = (i_val & 0xFF00) | val
+
         #check for autoincrement after write
         self.index_reg.shouldincrement()
     
@@ -112,22 +131,24 @@ class PaletteColorRegister:
     
     def getcolor(self, paletteindex, colorindex):
         #each palette = 8 bytes or 4 colors of 2 bytes
-        i = paletteindex * 8 + colorindex * 2
-        byte1 = self.palette[i] 
-        byte2 = self.palette[i + 1]
+        if paletteindex > 7 or colorindex > 3:
+            raise IndexError("Palette Mem Index Error, tried: Palette %s color %s" 
+                % hex(paletteindex), hex(colorindex))
+        
+        i = paletteindex * 4 + colorindex
+        color = self.palette_mem[i] 
 
-        cgb_col = self._cgbcolor(byte1, byte2)
+        cgb_col = self._cgbcolor(color)
         return self._convertcolor(cgb_col)
 
 
 ### MOVE TO UTILS?
     #takes 2 bytes from palette memory and gets the cgb color
     #only first 15 bits used
-    def _cgbcolor(self, byte1, byte2):
+    def _cgbcolor(self, color_bytes):
         #only care about 15 first bits
         mask = 0x7FFF
-        d_byte = (byte2 << 8) | byte1
-        return d_byte & mask
+        return color_bytes & mask
 
     #takes 15 bit cgb color and converts to standard 24 bit color
     #shifts the individual colors and then or with 3 most sig bits
@@ -147,6 +168,11 @@ class PaletteColorRegister:
         sig_bits = blue & 0x07  
         final_blue = (blue << 3) | sig_bits
         
+        final_color = (final_red << 16) | (final_green << 8) | final_blue
+        #print("Input color: %s", hex(color))
+        #print("output color: %s", hex(final_color))
+
+
         return (final_red << 16) | (final_green << 8) | final_blue
 
 

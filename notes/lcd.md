@@ -86,6 +86,7 @@ tilecache:
 - instead of tiles_changed then keep track of tiles_changed_bank0/!
 - caches, en tile / sprite for hver bank, der 3d list nu, da kan holde 8 forskellige paletter hver (måske ikke hurtigste)
 - rgba converter i cgb_renderer, flyt
+- tilføjet metode til at læse fra specifik bank i cgb_lcd
 
 
 FIND FORHOLD MELLEM FARVER:
