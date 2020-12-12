@@ -132,6 +132,7 @@ class Motherboard:
 
     # TODO: Move out of MB
     def check_LYC(self, y):
+        #print("%s" % format(self.getitem(STAT), '#010b'))
         self.setitem(LY, y)
         if self.getitem(LYC) == y:
             self.setitem(STAT, self.getitem(STAT) | 0b100) # Sets the LYC flag
@@ -157,7 +158,7 @@ class Motherboard:
                 # Serial is not implemented, so this isn't a concern
                 cycles = min(self.timer.cyclestointerrupt(), self.cycles_remaining)
 
-                # Profiling
+                # Profiling 
                 if self.cpu.profiling:
                     self.cpu.hitrate[0x76] += cycles // 4
 
@@ -190,7 +191,15 @@ class Motherboard:
                 # Mode 0
                 # TODO: Move out of MB
                 self.set_STAT_mode(0)
+                # TODO: Delete this. only to check hdma transfer
+                # write some code that transfers 16 bytes
+                self.mem_manager.do_potential_transfer()
                 self.calculate_cycles(206)
+                
+
+               
+
+                
 
             self.cpu.set_interruptflag(VBLANK)
             if not self.disable_renderer:
