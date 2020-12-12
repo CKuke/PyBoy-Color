@@ -8,7 +8,11 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         self.hdma2 = 0
         self.hdma3 = 0
         self.hdma4 = 0
-        self.hdma5 = 0
+        self.hdma5 = 0xFF
+
+        self.transfer_active = False
+        self.curr_src = 0
+        self.curr_dst = 0
     
     def get_io(self, addr):
         #print("%3s %6s" % ("get", hex(addr)))
@@ -120,33 +124,104 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         elif 0xFF51 <= addr <= 0xFF54:
             self.set_hdma(addr, value)
         elif addr == 0xFF55:
-            self.transfer_hdma(value)
+            self.set_hdma5(value)
         else:
             self.ram.write(addr, value)
 
+    def set_hdma5(self, value):
+        if self.transfer_active:
+            bit7 = value & 0x80
+            if bit7 == 0:
+                # terminate active transfer
+                print("terminating active transfer")
+                # TDOD: just for debugging
+                rem = self.hdma5
+                print("rem = %s" % hex(rem))
 
-    def transfer_hdma(self, value):
-        src = (((self.hdma1 << 8) + self.hdma2) & 0xFFF0)
-        dst = (((self.hdma3 << 8) + self.hdma4) & 0x1FF0) + 0x8000
-        data_len = ((value & 0x7F) + 1) * 16
-        transfer_type = (value & 0x80) >> 7
+                #######################
+                self.transfer_active = False
+                self.hdma5 = (self.hdma5 & 0x7F) | 0x80
+            else:
+                self.hdma5 = value & 0x7F
+        else:
+            self.hdma5 = value & 0xFF
+            bytes_to_transfer = ((value & 0x7F) * 16) + 16
+            src = (self.hdma1 << 8) | (self.hdma2 & 0xF0)
+            dst = ((self.hdma3 & 0x1F) << 8) | (self.hdma4 & 0xF0)
+            dst |= 0x8000
 
-        if transfer_type == 0:
-            for n in range(data_len):
-                self.setitem(dst + n, self.getitem(src + n))
-        elif transfer_type == 1:
-            for n in range(data_len):
-                self.setitem(dst + n, self.getitem(src + n))
+
+            transfer_type = value >> 7
+            if transfer_type == 0:
+                # General purpose DMA transfer
+                print("----- GDMA -----")
+                for i in range(bytes_to_transfer):
+                    #old = self.getitem(dst+i)
+                    self.setitem(dst + i, self.getitem(src + i))
+                    #new = self.getitem(dst+i)
+                    #print("%s --> %s" % (old,new))
+                self.hdma5 = 0xFF
+                self.hdma4 = 0xFF
+                self.hdma3 = 0xFF
+                self.hdma2 = 0xFF
+                self.hdma1 = 0xFF
+            else:
+                # Hblank DMA transfer
+                print("----- HDMA -----")
+                print("input = %s" % hex(self.hdma5))
                 
+                # set 0th bit to 0
+                self.hdma5 = self.hdma5 & 0x7F
+                self.transfer_active = True
+                self.curr_dst = dst
+                self.curr_src = src
 
+    def do_potential_transfer(self):
+        if self.transfer_active:
+            # TODO: debug code
+            print("remaining : %s" % hex(self.hdma5))
+            if self.hdma5 == 0:
+                print("hdma5 = 0")
+            ###########
 
+            src = self.curr_src & 0xFFF0
+            dst = (self.curr_dst & 0x1FF0) | 0x8000
+
+            for i in range(0x10):
+                #old = self.getitem(dst+i)
+                self.setitem(dst + i, self.getitem(src + i))
+                #new = self.getitem(dst+i)
+                #print("%s --> %s" % (old,new))
+
+            self.curr_dst += 0x10
+            self.curr_src += 0x10
+
+            if self.curr_dst == 0xA000:
+                self.curr_dst = 0x8000
+
+            if self.curr_src == 0x8000:
+                self.curr_src = 0xA000
+
+            self.hdma1 = self.curr_src & 0xFF00
+            self.hdma2 = self.curr_src & 0x00FF
+
+            self.hdma3 = self.curr_dst & 0xFF00
+            self.hdma4 = self.curr_dst & 0x00FF
+
+            self.hdma5 -= 1
+            if self.hdma5 == -1:
+                print("underflow")
+                self.transfer_active = False
+                self.hdma5 = 0xFF
+                
 
 
     def get_hdma(self, reg):
         if 0xFF51 <= reg <= 0xFF54:
             raise Exception("Can not read HDMA1-HDMA4")
         else:
-            return self.hdma5
+            print("hdma5 read : %s" % hex(self.hdma5))
+            return self.hdma5 & 0xFF
 
     def set_hdma(self, reg, value):
         if reg == 0xFF51:
