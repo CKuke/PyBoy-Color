@@ -112,6 +112,7 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         elif addr == 0xFF6A:
             self.lcd.ocps.set(value)
         elif addr == 0xFF6B:
+            print(hex(value))
             self.lcd.ocpd.set(value)        
             self.renderer.clearcache = True 
         elif addr == 0xFF70:

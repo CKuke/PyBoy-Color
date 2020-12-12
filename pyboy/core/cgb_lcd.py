@@ -12,7 +12,7 @@ class cgbLCD(lcd.LCD):
         self.VRAM1 = array("B", [0] * lcd.VBANK_SIZE)
 
         #8 palettes of 4 colors each 2 bytes
-        self.sprite_palette_mem = array("I", [0xFF] * NUM_PALETTES * NUM_COLORS)
+        self.sprite_palette_mem = array("I", [0x0] * NUM_PALETTES * NUM_COLORS)
         self.bg_palette_mem = array("I", [0xFF] * NUM_PALETTES * NUM_COLORS)
 
         self.vbk = VBKregister()
@@ -84,10 +84,10 @@ class PaletteIndexRegister:
         self.index = (val >> 1) & 0b11111
         self.auto_inc = (val >> 7) & 0b1 
 
-        print("hl: %s" %hex(self.hl))
-        print("index: %s" %hex((self.index & 0b11)))
-        print("pal: %s" %hex((self.index >>2)))
-        print("value: %s\n" %hex(self.value))
+        # print("hl: %s" %hex(self.hl))
+        # print("index: %s" %hex((self.index & 0b11)))
+        # print("pal: %s" %hex((self.index >>2)))
+        # print("value: %s\n" %hex(self.value))
 
     def get(self):
         return self.value
@@ -123,17 +123,22 @@ class PaletteColorRegister:
         else:
             self.palette_mem[self.index_reg.getindex()] = (i_val & 0xFF00) | val
 
+        # for i in self.palette_mem:
+        #     print(hex(i), end = ' ')
+        # print("")
+        # print("")
+
         #check for autoincrement after write
         self.index_reg.shouldincrement()
     
     def get(self):
         return self.palette[self.index_reg.getindex()]
-    
+
     def getcolor(self, paletteindex, colorindex):
         #each palette = 8 bytes or 4 colors of 2 bytes
         if paletteindex > 7 or colorindex > 3:
             raise IndexError("Palette Mem Index Error, tried: Palette %s color %s" 
-                % hex(paletteindex), hex(colorindex))
+                % paletteindex, colorindex)
         
         i = paletteindex * 4 + colorindex
         color = self.palette_mem[i] 

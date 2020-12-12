@@ -153,10 +153,10 @@ class Renderer:
                         if 0 <= x < COLS:
                             # import pdb; pdb.set_trace()
                             # TODO: Checking `buffer[y][x] == bgpkey` is a bit of a hack
-                            if (spritepriority and not buffer[y][x] == bgpkey):
+                            #if (spritepriority and not buffer[y][x] == bgpkey):
                                 # Add a fake alphachannel to the sprite for BG pixels. We can't just merge this
                                 # with the next 'if', as sprites can have an alpha channel in other ways
-                                pixel &= ~self.alphamask
+                                #pixel &= ~self.alphamask
 
                             if pixel & self.alphamask:
                                 buffer[y][x] = pixel
