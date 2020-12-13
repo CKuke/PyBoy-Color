@@ -200,7 +200,6 @@ class Motherboard:
                
 
                 
-
             self.cpu.set_interruptflag(VBLANK)
             if not self.disable_renderer:
                 self.renderer.render_screen(self.lcd)
