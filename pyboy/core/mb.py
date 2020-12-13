@@ -192,9 +192,9 @@ class Motherboard:
                 # TODO: Move out of MB
                 self.set_STAT_mode(0)
                 # TODO: Delete this. only to check hdma transfer
-                # write some code that transfers 16 bytes
                 self.mem_manager.do_potential_transfer()
                 self.calculate_cycles(206)
+                
                 
 
                

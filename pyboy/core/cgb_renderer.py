@@ -46,13 +46,17 @@ class Renderer:
         else:
             v = memoryview(self._screenbuffer_raw).cast("I")
             self._screenbuffer = [v[i:i + COLS] for i in range(0, COLS * ROWS, COLS)]
-            v = memoryview(self._tilecache0_raw).cast("I")
+            #v = memoryview(self._tilecache0_raw).cast("I")
+            v = array("I", self._tilecache0_raw.tolist())
             self.tc0 = [v[i:i + 8] for i in range(0, tiles_bank * 8 * 8, 8)]
-            v = memoryview(self._tilecache1_raw).cast("I")
+            #v = memoryview(self._tilecache1_raw).cast("I")
+            v = array("I", self._tilecache1_raw.tolist())
             self.tc1 = [v[i:i + 8] for i in range(0, tiles_bank * 8 * 8, 8)]
-            v = memoryview(self._spritecache0_raw).cast("I")
+            #v = memoryview(self._spritecache0_raw).cast("I")
+            v = array("I", self._spritecache0_raw.tolist())
             self.sc0 = [v[i:i + 8] for i in range(0, tiles_bank * 8 * 8, 8)]
-            v = memoryview(self._spritecache1_raw).cast("I")
+            #v = memoryview(self._spritecache1_raw).cast("I")
+            v = array("I", self._spritecache1_raw.tolist())
             self.sc1 = [v[i:i + 8] for i in range(0, tiles_bank * 8 * 8, 8)]
             self._screenbuffer_ptr = c_void_p(self._screenbuffer_raw.buffer_info()[0])
 
@@ -61,11 +65,16 @@ class Renderer:
             self._tilecache1 = []
             self._spritecache0 = []
             self._spritecache1 = []
+
+            from copy import deepcopy
             for i in range(8):
-                self._tilecache0.append(self.tc0)
-                self._tilecache1.append(self.tc1)
-                self._spritecache0.append(self.sc0)
-                self._spritecache1.append(self.sc1)
+                self._tilecache0.append(deepcopy(self.tc0))
+                self._tilecache1.append(deepcopy(self.tc1))
+                self._spritecache0.append(deepcopy(self.sc0))
+                self._spritecache1.append(deepcopy(self.sc1))
+
+            for i in range(8):
+                print(hex(id(self._tilecache0[i])))
 
             ### TESTING TESTING TESTING TESTING TESTING TESTING TESTING ####
             self._tilecache_raw = array("B", [0xFF] * (tiles_bank*8*8*4))

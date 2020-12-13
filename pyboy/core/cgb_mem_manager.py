@@ -116,7 +116,7 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         elif addr == 0xFF6A:
             self.lcd.ocps.set(value)
         elif addr == 0xFF6B:
-            print(hex(value))
+            #print(hex(value))
             self.lcd.ocpd.set(value)        
             self.renderer.clearcache = True 
         elif addr == 0xFF70:
@@ -133,10 +133,10 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             bit7 = value & 0x80
             if bit7 == 0:
                 # terminate active transfer
-                print("terminating active transfer")
+                #print("terminating active transfer")
                 # TDOD: just for debugging
                 rem = self.hdma5
-                print("rem = %s" % hex(rem))
+                #print("rem = %s" % hex(rem))
 
                 #######################
                 self.transfer_active = False
@@ -154,7 +154,7 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             transfer_type = value >> 7
             if transfer_type == 0:
                 # General purpose DMA transfer
-                print("----- GDMA -----")
+                #print("----- GDMA -----")
                 for i in range(bytes_to_transfer):
                     #old = self.getitem(dst+i)
                     self.setitem(dst + i, self.getitem(src + i))
@@ -167,8 +167,8 @@ class CgbMemoryManager(mem_manager.MemoryManager):
                 self.hdma1 = 0xFF
             else:
                 # Hblank DMA transfer
-                print("----- HDMA -----")
-                print("input = %s" % hex(self.hdma5))
+                #print("----- HDMA -----")
+                #print("input = %s" % hex(self.hdma5))
                 
                 # set 0th bit to 0
                 self.hdma5 = self.hdma5 & 0x7F
@@ -179,9 +179,9 @@ class CgbMemoryManager(mem_manager.MemoryManager):
     def do_potential_transfer(self):
         if self.transfer_active:
             # TODO: debug code
-            print("remaining : %s" % hex(self.hdma5))
-            if self.hdma5 == 0:
-                print("hdma5 = 0")
+            #print("remaining : %s" % hex(self.hdma5))
+            #if self.hdma5 == 0:
+            #    print("hdma5 = 0")
             ###########
 
             src = self.curr_src & 0xFFF0
@@ -220,7 +220,7 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         if 0xFF51 <= reg <= 0xFF54:
             raise Exception("Can not read HDMA1-HDMA4")
         else:
-            print("hdma5 read : %s" % hex(self.hdma5))
+            #print("hdma5 read : %s" % hex(self.hdma5))
             return self.hdma5 & 0xFF
 
     def set_hdma(self, reg, value):
