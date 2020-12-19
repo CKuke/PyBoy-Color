@@ -40,15 +40,14 @@ class cgbLCD(lcd.LCD):
             return self.VRAM1[i - 0x8000]
 
     #TEMPORARY FIX USED IN RENDERER.PY REMOVE THIS
-    def NoOffsetgetVRAM(self, i):
-        if self.vbk.active_bank == 0:
+    def NoOffsetgetVRAM(self, i, bank=0):
+        if bank == 0:
             return self.VRAM0[i]
         else:
             return self.VRAM1[i]
 
     def getVBANK(self):
         return self.vbk.active_bank
-
 
 class VBKregister:
     def __init__(self, value=0):

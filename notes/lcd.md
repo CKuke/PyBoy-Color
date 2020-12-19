@@ -26,7 +26,6 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 
 ### TODO
 - REMEMBER TO REMOVE: Added temporary NoOffsetgetVRAM methods to lcd classes to avoid out of range error when fetching wt and bt values in render_screen in renderer.py
-- LCDC FF40 Control Register change bit 0 implementation: render_screen method in renderer class currently uses the background_enable bit, change this to make background rendering loose priority when CGB 
 - FF41 Stat is currently in MB, move to LCD? Does mode 3 need to be extented to account for the fact that CGB palette data can't be accessed?
 - FF44/45 LY/LYC currently in MB, move to base_lcd?
 - FF46 DMA OAM transfers currently in MB, move to base_lcd? Especially because CGB also adds VRAM DMA transfer functionality, where to put that then
@@ -35,9 +34,13 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - måske cgb_lcd ikke skal nedarve fra lcd - der er efteråhnden meget få ligheder
 - clearcache er stadig samlet, opdater så det kun er for de relevante (spite eller tile) paletter der opdateres for performance
 - hvis det kører alt for langsomt, så gør så update cache ikke holder dem alle hele tiden, men at de hentes når der er brug for dem
-- hvis farver bugger, så har det nok noget at gøre med omdannelse til CGB farver (bit 0-7 in first byte)
 - spritepriority and not buffer[y][x] == bgpkey
-- hvad er det der alphamask?
+- udregner backgroundattributes for hver ved hver scanline, kan måske godt optimeres, holde på nogle af værdierne, så kun opdatere, når der er blevet skrevet dertil? - kan gøre det på samme måde som de har 
+- skriv vram og getvram sammen med optional arguement
+- add yflip
+- LCDC bit 0, on cgb this is a master priority bit to always render sprites on top, but should background and window still become white?
+- Hvordan skal man lige sikre sig at det er color 0?
+- SPRITE PRIORITERING? Bare lige byt rundt!
 
 ### Notes
 **Sprites**: 8x8 or 8x16 tiles, 4 bytes

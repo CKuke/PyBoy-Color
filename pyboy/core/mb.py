@@ -32,7 +32,7 @@ class Motherboard:
         
         if self.cartridge.is_cgb:
             logger.info("Started as Game Boy Color")
-            self.renderer = cgb_renderer.Renderer(color_palette)
+            self.renderer = cgb_renderer.CGBRenderer()
             self.lcd = cgb_lcd.cgbLCD()
             self.ram = cgb_ram.CgbRam(random=False)
             self.mem_manager = cgb_mem_manager.CgbMemoryManager(

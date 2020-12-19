@@ -5,7 +5,7 @@
 
 from array import array
 
-VBANK_SIZE = 8 * 1024 # 8KB
+VBANK_SIZE = 8 * 1024
 OBJECT_ATTRIBUTE_MEMORY = 0xA0
 LCDC, STAT, SCY, SCX, LY, LYC, DMA, BGP, OBP0, OBP1, WY, WX = range(0xFF40, 0xFF4C)
 
