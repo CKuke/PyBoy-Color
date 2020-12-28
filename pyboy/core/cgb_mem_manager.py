@@ -13,6 +13,9 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         self.transfer_active = False
         self.curr_src = 0
         self.curr_dst = 0
+
+        self.key1 = 0
+        self.is_double_speed = False
     
     def get_io(self, addr):
         #print("%3s %6s" % ("get", hex(addr)))
@@ -46,6 +49,8 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         elif addr == 0xFF4B:
             return self.lcd.WX
         # CGB registers
+        elif addr == 0xFF4D:
+            return self.get_key1()
         elif addr == 0xFF4F:
             return self.lcd.vbk.get()
         elif addr == 0xFF68:
@@ -106,6 +111,8 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             self.mb.bootrom_enabled = False
             self.ram.write(addr, value)
         # CGB registers
+        elif addr == 0xFF4D:
+            self.set_key1(value)
         elif addr == 0xFF4F:
             self.lcd.vbk.set(value)
         elif addr == 0xFF68:
@@ -127,6 +134,19 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             self.set_hdma5(value)
         else:
             self.ram.write(addr, value)
+
+    def set_key1(self, value):
+        self.key1 = value & 0xFF
+    
+    def get_key1(self):
+        return self.key1
+
+    def switch_speed(self):
+        bit0 = self.key1 & 0b1
+        if bit0 == 1:
+            self.is_double_speed = not self.is_double_speed
+            self.key1 ^= 0b10000001
+    
 
     def set_hdma5(self, value):
         if self.transfer_active:
