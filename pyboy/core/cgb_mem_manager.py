@@ -35,11 +35,11 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             return self.lcd.SCY
         elif addr == 0xFF43:
             return self.lcd.SCX
-        elif addr == 0xFF47 and not self.cartridge.is_cgb:
+        elif addr == 0xFF47:
             return self.lcd.BGP.value
-        elif addr == 0xFF48 and not self.cartridge.is_cgb:
+        elif addr == 0xFF48:
             return self.lcd.OBP0.value
-        elif addr == 0xFF49 and not self.cartridge.is_cgb:
+        elif addr == 0xFF49:
             return self.lcd.OBP1.value
         elif addr == 0xFF4A:
             return self.lcd.WY
@@ -49,11 +49,11 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         elif addr == 0xFF4F:
             return self.lcd.vbk.get()
         elif addr == 0xFF68:
-            return self.lcd.bcps.get()
+            return self.lcd.bcps.get() | 0x40
         elif addr == 0xFF69:
             return self.lcd.bcpd.get() 
         elif addr == 0xFF6A:
-            return self.lcd.ocps.get()
+            return self.lcd.ocps.get() | 0x40
         elif addr == 0xFF6B:
             return self.lcd.ocpd.get()
         elif addr == 0xFF70:
@@ -91,13 +91,13 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             self.transfer_DMA(value)
         elif addr == 0xFF47:
             # TODO: Move out of MB
-            self.renderer.clearcache |= self.lcd.BGP.set(value)
+            self.lcd.BGP.set(value)
         elif addr == 0xFF48:
             # TODO: Move out of MB
-            self.renderer.clearcache |= self.lcd.OBP0.set(value)
+            self.lcd.OBP0.set(value)
         elif addr == 0xFF49:
             # TODO: Move out of MB
-            self.renderer.clearcache |= self.lcd.OBP1.set(value)
+            self.lcd.OBP1.set(value)
         elif addr == 0xFF4A:
             self.lcd.WY = value
         elif addr == 0xFF4B:

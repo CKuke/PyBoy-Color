@@ -131,7 +131,7 @@ class PaletteColorRegister:
         self.index_reg.shouldincrement()
     
     def get(self):
-        return self.palette[self.index_reg.getindex()]
+        return self.palette_mem[self.index_reg.getindex()]
 
     def getcolor(self, paletteindex, colorindex):
         #each palette = 8 bytes or 4 colors of 2 bytes
@@ -173,10 +173,7 @@ class PaletteColorRegister:
         final_blue = (blue << 3) | sig_bits
         
         final_color = (final_red << 16) | (final_green << 8) | final_blue
-        #print("Input color: %s", hex(color))
-        #print("output color: %s", hex(final_color))
-
-
+        
         return (final_red << 16) | (final_green << 8) | final_blue
 
 
