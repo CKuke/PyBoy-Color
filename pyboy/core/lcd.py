@@ -30,11 +30,9 @@ class LCD:
     def setVRAM(self, i, value):
         self.VRAM0[i - 0x8000] = value
     
-    def getVRAM(self, i):
-        return self.VRAM0[i - 0x8000]
-
-    def NoOffsetgetVRAM(self, i):
-        return self.VRAM0[i]
+    def getVRAM(self, i, offset = True):
+        i_off = 0x8000 if offset else 0x0
+        return self.VRAM0[i - i_off]
 
     def save_state(self, f):
         for n in range(VBANK_SIZE):

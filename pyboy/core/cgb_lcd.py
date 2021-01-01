@@ -33,33 +33,24 @@ class cgbLCD(lcd.LCD):
         else:
             return self.VRAM1[i - 0x8000]
 
-    def getVRAMbank(self, i, bank):
+    def getVRAMbank(self, i, bank = 0, offset = True):
+        i_off = 0x8000 if offset else 0x0
         if bank == 0:
-            return self.VRAM0[i - 0x8000]
+            return self.VRAM0[i - i_off]
         else:
-            return self.VRAM1[i - 0x8000]
-
-    #TEMPORARY FIX USED IN RENDERER.PY REMOVE THIS
-    def NoOffsetgetVRAM(self, i, bank=0):
-        if bank == 0:
-            return self.VRAM0[i]
-        else:
-            return self.VRAM1[i]
-
-    def getVBANK(self):
-        return self.vbk.active_bank
+            return self.VRAM1[i - i_off]
 
 class VBKregister:
     def __init__(self, value=0):
         self.active_bank = value
 
     def set(self, value):
-        #when writing to VBK, bit 0 indicates which bank to switch to
+        # when writing to VBK, bit 0 indicates which bank to switch to
         bank = value & 1
         self._switch_bank(bank)
 
     def get(self):
-        #reading from this register returns current VRAM bank in bit 0, other bits = 1
+        # reading from this register returns current VRAM bank in bit 0, other bits = 1
         return self.active_bank | 0xFE
 
     def _switch_bank(self, bank):
@@ -76,17 +67,12 @@ class PaletteIndexRegister:
         self.hl = 0
 
     def set(self, val):
-#        if self.value == val:
-#            return
+        if self.value == val:
+            return
         self.value = val
         self.hl = val & 0b1
         self.index = (val >> 1) & 0b11111
         self.auto_inc = (val >> 7) & 0b1 
-
-        # print("hl: %s" %hex(self.hl))
-        # print("index: %s" %hex((self.index & 0b11)))
-        # print("pal: %s" %hex((self.index >>2)))
-        # print("value: %s\n" %hex(self.value))
 
     def get(self):
         return self.value
@@ -94,18 +80,18 @@ class PaletteIndexRegister:
     def getindex(self):
         return self.index
 
-    #hl defines which of the two bytes in a color is needed
+    # hl defines which of the two bytes in a color is needed
     def gethl(self):
         return self.hl
 
     def _inc_index(self):
-        #what happens if increment is set and index is at max 0x3F?
-        #undefined behavior
+        # what happens if increment is set and index is at max 0x3F?
+        # undefined behavior
         self.index += 1
 
     def shouldincrement(self):
         if self.auto_inc:
-            #ensure autoinc also set for new val
+            # ensure autoinc also set for new val
             new_val = 0x80 | (self.value + 1) 
             self.set(new_val)
 
@@ -121,11 +107,6 @@ class PaletteColorRegister:
             self.palette_mem[self.index_reg.getindex()] = (i_val & 0x00FF) | (val << 8)
         else:
             self.palette_mem[self.index_reg.getindex()] = (i_val & 0xFF00) | val
-
-        # for i in self.palette_mem:
-        #     print(hex(i), end = ' ')
-        # print("")
-        # print("")
 
         #check for autoincrement after write
         self.index_reg.shouldincrement()
@@ -143,38 +124,28 @@ class PaletteColorRegister:
         color = self.palette_mem[i] 
 
         cgb_col = self._cgbcolor(color)
-        return self._convertcolor(cgb_col)
+        return self._convert15bitcol(cgb_col)
 
 
 ### MOVE TO UTILS?
-    #takes 2 bytes from palette memory and gets the cgb color
-    #only first 15 bits used
+    # takes 2 bytes from palette memory and gets the cgb color
+    # only first 15 bits used
     def _cgbcolor(self, color_bytes):
         #only care about 15 first bits
         mask = 0x7FFF
         return color_bytes & mask
 
-    #takes 15 bit cgb color and converts to standard 24 bit color
-    #shifts the individual colors and then or with 3 most sig bits
-    def _convertcolor(self, color):
-        #colors 5 bits
+    # converts 15 bit color to 24 bit
+    def _convert15bitcol(self, color):
+        # colors 5 bits
         color_mask = 0x1F
 
-        red = color & color_mask
-        sig_bits = red & 0x07  
-        final_red = (red << 3) | sig_bits
+        red = (color & color_mask) << 3        
+        green = ((color >> 5) & color_mask) << 3
+        blue = ((color >> 10) & color_mask) << 3
         
-        green = (color >> 5) & color_mask
-        sig_bits = green & 0x07  
-        final_green = (green << 3) | sig_bits
-
-        blue = (color >> 10) & color_mask
-        sig_bits = blue & 0x07  
-        final_blue = (blue << 3) | sig_bits
-        
-        final_color = (final_red << 16) | (final_green << 8) | final_blue
-        
-        return (final_red << 16) | (final_green << 8) | final_blue
+        final_color = (red << 16) | (green << 8) | blue
+        return final_color
 
 
 

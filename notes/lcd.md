@@ -25,7 +25,7 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - Bit 7: BG-to-OAM Priority
 
 ### TODO
-- REMEMBER TO REMOVE: Added temporary NoOffsetgetVRAM methods to lcd classes to avoid out of range error when fetching wt and bt values in render_screen in renderer.py
+- REMEMBER TO REMOVE: Added temporary NoOffsetgetVRAM methods to lcd classes to avoid out of range error when fetching wt and bt values in render_screen in renderer.py, ændrer i dette ved bare at lade den der getvram metode vælge enten at bruge 0x8000 indeksering eller ej, så den kan understøtte begge
 - FF41 Stat is currently in MB, move to LCD? Does mode 3 need to be extented to account for the fact that CGB palette data can't be accessed?
 - FF44/45 LY/LYC currently in MB, move to base_lcd?
 - FF46 DMA OAM transfers currently in MB, move to base_lcd? Especially because CGB also adds VRAM DMA transfer functionality, where to put that then
@@ -41,6 +41,8 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - LCDC bit 0, on cgb this is a master priority bit to always render sprites on top, but should background and window still become white?
 - Hvordan skal man lige sikre sig at det er color 0?
 - SPRITE PRIORITERING? Bare lige byt rundt!
+- Gør sb_priority til et memory view?
+- Måske også lige tilføje det der med baggrundstjek til DMG renderer?
 
 ### Notes
 **Sprites**: 8x8 or 8x16 tiles, 4 bytes
@@ -87,10 +89,10 @@ tilecache:
 - added cgb checks to memory manager when trying to use DMG palette registers
 - updated setVRAM methods to return the bank that was set in order to compensate for mm
 - instead of tiles_changed then keep track of tiles_changed_bank0/!
-- caches, en tile / sprite for hver bank, der 3d list nu, da kan holde 8 forskellige paletter hver (måske ikke hurtigste)
+- caches, en tile / sprite for hver bank, der 3d list nu, da kan holde 8 forskellige paletter hver (måske ikke hurtigste), også lavet en der kan bruges til at holde color index
 - rgba converter i cgb_renderer, flyt
 - tilføjet metode til at læse fra specifik bank i cgb_lcd
-
+- skriv om det der eksempel i mario med pipen, og hvordan det adskiller sig fra den anden
 
 FIND FORHOLD MELLEM FARVER:
 PÅ EN MODERNE MASKINE: 24 BIT
