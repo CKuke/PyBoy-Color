@@ -71,7 +71,7 @@ class Renderer:
 
             for x in range(COLS):
                 if lcd.LCDC.window_enable and wy <= y and wx <= x:
-                    wt = lcd.NoOffsetgetVRAM(wmap + (y-wy) // 8 * 32 % 0x400 + (x-wx) // 8 % 32)
+                    wt = lcd.getVRAM(wmap + (y-wy) // 8 * 32 % 0x400 + (x-wx) // 8 % 32, False)
                     # If using signed tile indices, modify index
                     if not lcd.LCDC.tiledata_select:
                         # (x ^ 0x80 - 128) to convert to signed, then
@@ -79,7 +79,7 @@ class Renderer:
                         wt = (wt ^ 0x80) + 128
                     self._screenbuffer[y][x] = self._tilecache[8*wt + (y-wy) % 8][(x-wx) % 8]
                 elif lcd.LCDC.background_enable:
-                    bt = lcd.NoOffsetgetVRAM(background_offset + (y+by) // 8 * 32 % 0x400 + (x+bx) // 8 % 32)
+                    bt = lcd.getVRAM(background_offset + (y+by) // 8 * 32 % 0x400 + (x+bx) // 8 % 32, False)
                     # If using signed tile indices, modify index
                     if not tile_data_select:
                         # (x ^ 0x80 - 128) to convert to signed, then
@@ -99,7 +99,7 @@ class Renderer:
         # - Prioritizes sprite in inverted order
         spriteheight = 16 if lcd.LCDC.sprite_height else 8
         bgpkey = self.color_palette[lcd.BGP.getcolor(0)]
-
+        
         for n in range(0x00, 0xA0, 4):
             y = lcd.OAM[n] - 16 # Documentation states the y coordinate needs to be subtracted by 16
             x = lcd.OAM[n + 1] - 8 # Documentation states the x coordinate needs to be subtracted by 8

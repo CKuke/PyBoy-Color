@@ -32,8 +32,8 @@ class Motherboard:
         
         if self.cartridge.is_cgb:
             logger.info("Started as Game Boy Color")
-            self.renderer = cgb_renderer.Renderer(color_palette)
-            self.lcd = cgb_lcd.cgbLCD()
+            self.renderer = cgb_renderer.CGBRenderer()
+            self.lcd = cgb_lcd.cgbLCD(self.renderer)
             self.ram = cgb_ram.CgbRam(random=False)
             self.mem_manager = cgb_mem_manager.CgbMemoryManager(
                 self, self.bootrom, self.cartridge, 
@@ -42,8 +42,8 @@ class Motherboard:
 
         else:
             logger.info("Started as Game Boy")
-            self.renderer = cgb_renderer.Renderer(color_palette)
-            self.lcd = lcd.LCD()
+            self.renderer = renderer.Renderer(color_palette)
+            self.lcd = lcd.LCD(self.renderer)
             self.ram = base_ram.RAM(random=False)
             self.mem_manager = mem_manager.MemoryManager(
                 self, self.bootrom, self.cartridge, 
@@ -143,6 +143,16 @@ class Motherboard:
 
     def calculate_cycles(self, cycles_period):
         self.cycles_remaining += cycles_period
+
+        # TODO: Temporary hdma transfer
+        mode = self.getitem(STAT) & 0b11
+        if mode == 0:
+            stat_3 = (self.getitem(STAT) & 0b00001000) >> 3
+            if stat_3 == 1:
+                self.mem_manager.do_potential_transfer()
+                self.cycles_remaining -= 8 # TODO: adjust for double speed
+        ##############################
+
         while self.cycles_remaining > 0:
             cycles = self.cpu.tick()
 
@@ -191,16 +201,9 @@ class Motherboard:
                 # Mode 0
                 # TODO: Move out of MB
                 self.set_STAT_mode(0)
-                # TODO: Delete this. only to check hdma transfer
-                # write some code that transfers 16 bytes
-                self.mem_manager.do_potential_transfer()
                 self.calculate_cycles(206)
                 
-
-               
-
                 
-
             self.cpu.set_interruptflag(VBLANK)
             if not self.disable_renderer:
                 self.renderer.render_screen(self.lcd)

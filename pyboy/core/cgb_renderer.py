@@ -10,43 +10,77 @@ try:
 except ImportError:
     cythonmode = False
 
-class Renderer:
-    def __init__(self, color_palette):
+class CGBRenderer:
+    def __init__(self):
         self.alphamask = 0xFF
-
-        self.color_palette = [(c << 8) | self.alphamask for c in color_palette]
+        
         self.color_format = "RGBA"
 
         self.buffer_dims = (ROWS, COLS)
 
         self.clearcache = False
-        self.tiles_changed = set([])
+        self.tiles_changed0 = set([])
+        self.tiles_changed1 = set([])
 
-        tiles = 768
+        tiles_bank = 384
         
         # Init buffers as white
+        # *4 because palettes are 4 colors?
+        # 1 tile-/spritecache for each bank
         self._screenbuffer_raw = array("B", [0xFF] * (ROWS*COLS*4))
-        self._tilecache_raw = array("B", [0xFF] * (tiles*8*8*4))
-        self._spritecache0_raw = array("B", [0xFF] * (tiles*8*8*4))
-        self._spritecache1_raw = array("B", [0xFF] * (tiles*8*8*4))
+        self._tilecache0_raw = array("B", [0xFF] * (tiles_bank*8*8*4))
+        self._tilecache1_raw = array("B", [0xFF] * (tiles_bank*8*8*4))
+        self._spritecache0_raw = array("B", [0xFF] * (tiles_bank*8*8*4))
+        self._spritecache1_raw = array("B", [0xFF] * (tiles_bank*8*8*4))
+        self._col_index0_raw = array("B", [0xFF] * (tiles_bank*8*8*4))
+        self._col_index1_raw = array("B", [0xFF] * (tiles_bank*8*8*4))
 
         if cythonmode:
             self._screenbuffer = memoryview(self._screenbuffer_raw).cast("I", shape=(ROWS, COLS))
-            self._tilecache = memoryview(self._tilecache_raw).cast("I", shape=(tiles * 8, 8))
-            self._spritecache0 = memoryview(self._spritecache0_raw).cast("I", shape=(tiles * 8, 8))
-            self._spritecache1 = memoryview(self._spritecache1_raw).cast("I", shape=(tiles * 8, 8))
+            self._tilecache = memoryview(self._tilecache_raw).cast("I", shape=(tiles_bank * 8, 8))
+            self._spritecache0 = memoryview(self._spritecache0_raw).cast("I", shape=(tiles_bank * 8, 8))
+            self._spritecache1 = memoryview(self._spritecache1_raw).cast("I", shape=(tiles_bank * 8, 8))
         else:
             v = memoryview(self._screenbuffer_raw).cast("I")
             self._screenbuffer = [v[i:i + COLS] for i in range(0, COLS * ROWS, COLS)]
-            v = memoryview(self._tilecache_raw).cast("I")
-            self._tilecache = [v[i:i + 8] for i in range(0, tiles * 8 * 8, 8)]
+            v = memoryview(self._tilecache0_raw).cast("I")
+            v = array("I", self._tilecache0_raw.tolist())
+            self.tc0 = [v[i:i + 8] for i in range(0, tiles_bank * 8 * 8, 8)]
+            v = memoryview(self._tilecache1_raw).cast("I")
+            v = array("I", self._tilecache1_raw.tolist())
+            self.tc1 = [v[i:i + 8] for i in range(0, tiles_bank * 8 * 8, 8)]
             v = memoryview(self._spritecache0_raw).cast("I")
-            self._spritecache0 = [v[i:i + 8] for i in range(0, tiles * 8 * 8, 8)]
+            v = array("I", self._spritecache0_raw.tolist())
+            self.sc0 = [v[i:i + 8] for i in range(0, tiles_bank * 8 * 8, 8)]
             v = memoryview(self._spritecache1_raw).cast("I")
-            self._spritecache1 = [v[i:i + 8] for i in range(0, tiles * 8 * 8, 8)]
+            v = array("I", self._spritecache1_raw.tolist())
+            self.sc1 = [v[i:i + 8] for i in range(0, tiles_bank * 8 * 8, 8)]
+            v = memoryview(self._col_index0_raw).cast("I")
+            v = array("I", self._col_index0_raw.tolist())
+            self._col_index0 = [v[i:i + 8] for i in range(0, tiles_bank * 8 * 8, 8)]
+            v = memoryview(self._col_index1_raw).cast("I")
+            v = array("I", self._col_index1_raw.tolist())
+            self._col_index1 = [v[i:i + 8] for i in range(0, tiles_bank * 8 * 8, 8)]
             self._screenbuffer_ptr = c_void_p(self._screenbuffer_raw.buffer_info()[0])
 
+            # create the 3d lists to hold palettes, 8 palettes
+            self._tilecache0 = []
+            self._tilecache1 = []
+            self._spritecache0 = []
+            self._spritecache1 = []
+
+            from copy import deepcopy
+            for i in range(8):
+                self._tilecache0.append(deepcopy(self.tc0))
+                self._tilecache1.append(deepcopy(self.tc1))
+                self._spritecache0.append(deepcopy(self.sc0))
+                self._spritecache1.append(deepcopy(self.sc1))
+
         self._scanlineparameters = [[0, 0, 0, 0, 0] for _ in range(ROWS)]
+        
+        self._backgroundmapattributes = [0, 0, 0, 0, 0]
+        self._col_i = [[0] * COLS for _ in range(ROWS)]
+        self._bg_priority = [[0] * COLS for _ in range(ROWS)]
 
     def scanline(self, y, lcd):
         bx, by = lcd.getviewport()
@@ -56,6 +90,20 @@ class Renderer:
         self._scanlineparameters[y][2] = wx
         self._scanlineparameters[y][3] = wy
         self._scanlineparameters[y][4] = lcd.LCDC.tiledata_select
+
+    def getbackgroundmapattributes(self, lcd, i):
+        tile_num = lcd.getVRAMbank(i, 1, False)
+        palette = tile_num & 0b111  
+        vbank = (tile_num >> 3) & 1
+        horiflip = (tile_num >> 5) & 1
+        vertflip = (tile_num >> 6) & 1
+        bgpriority = (tile_num >> 7) & 1 
+
+        self._backgroundmapattributes[0] = palette
+        self._backgroundmapattributes[1] = vbank
+        self._backgroundmapattributes[2] = horiflip
+        self._backgroundmapattributes[3] = vertflip
+        self._backgroundmapattributes[4] = bgpriority
 
     def render_screen(self, lcd):
         self.update_cache(lcd)
@@ -70,99 +118,162 @@ class Renderer:
             offset = bx & 0b111
 
             for x in range(COLS):
+                # WINDOW
                 if lcd.LCDC.window_enable and wy <= y and wx <= x:
-                    wt = lcd.NoOffsetgetVRAM(wmap + (y-wy) // 8 * 32 % 0x400 + (x-wx) // 8 % 32)
+                    index = wmap + (y-wy) // 8 * 32 % 0x400 + (x-wx) // 8 % 32
+                    wt = lcd.getVRAMbank(index, 0, False)
+                    
+                    #cgb specific map attributes
+                    self.getbackgroundmapattributes(lcd, index)
+                    palette, vbank, horiflip, vertflip, bgpriority = self._backgroundmapattributes
+                    tilecache = (self._tilecache1 if vbank else self._tilecache0)
+                    col_index = (self._col_index1 if vbank else self._col_index0)
+                    xx = (7 - ((x-wx) % 8)) if horiflip else ((x-wx) % 8)
+                    
                     # If using signed tile indices, modify index
-                    if not lcd.LCDC.tiledata_select:
+                    if not tile_data_select:
                         # (x ^ 0x80 - 128) to convert to signed, then
                         # add 256 for offset (reduces to + 128)
                         wt = (wt ^ 0x80) + 128
-                    self._screenbuffer[y][x] = self._tilecache[8*wt + (y-wy) % 8][(x-wx) % 8]
-                elif lcd.LCDC.background_enable:
-                    bt = lcd.NoOffsetgetVRAM(background_offset + (y+by) // 8 * 32 % 0x400 + (x+bx) // 8 % 32)
+                    
+                    yy = (8*wt + (7 -(y-wy) % 8)) if vertflip else (8*wt + (y-wy) % 8)
+                    self._screenbuffer[y][x] = tilecache[palette][yy][xx]
+                    self._col_i[y][x] = col_index[yy][xx]
+                    self._bg_priority[y][x] = bgpriority
+
+                # BACKGROUND
+                else:
+                    index = background_offset + (y+by) // 8 * 32 % 0x400 + (x+bx) // 8 % 32
+                    bt = lcd.getVRAMbank(index, 0, False)
+
+                    #cgb specific map attributes
+                    self.getbackgroundmapattributes(lcd, index)
+                    palette, vbank, horiflip, vertflip, bgpriority = self._backgroundmapattributes
+                    tilecache = (self._tilecache1 if vbank else self._tilecache0)
+                    col_index = (self._col_index1 if vbank else self._col_index0)
+
+                    xx = (7 - ((x+offset) % 8)) if horiflip else ((x+offset) % 8)
+
                     # If using signed tile indices, modify index
                     if not tile_data_select:
                         # (x ^ 0x80 - 128) to convert to signed, then
                         # add 256 for offset (reduces to + 128)
                         bt = (bt ^ 0x80) + 128
-                    self._screenbuffer[y][x] = self._tilecache[8*bt + (y+by) % 8][(x+offset) % 8]
-                else:
-                    # If background is disabled, it becomes white
-                    self._screenbuffer[y][x] = self.color_palette[0]
 
+                    yy = (8*bt + (7-(y+by) % 8)) if vertflip else (8*bt + (y+by) % 8)
+                    self._screenbuffer[y][x] = tilecache[palette][yy][xx]
+                    self._col_i[y][x] = col_index[yy][xx]
+                    self._bg_priority[y][x] = bgpriority                    
+        
         if lcd.LCDC.sprite_enable:
-            self.render_sprites(lcd, self._screenbuffer, False)
+            self.render_sprites(lcd, self._screenbuffer)
 
-    def render_sprites(self, lcd, buffer, ignore_priority):
+    def render_sprites(self, lcd, buffer, ignore_priority = False):
         # Render sprites
         # - Doesn't restrict 10 sprites per scan line
         # - Prioritizes sprite in inverted order
         spriteheight = 16 if lcd.LCDC.sprite_height else 8
-        bgpkey = self.color_palette[lcd.BGP.getcolor(0)]
+        
+        # On CGB LCDC bit 0 is a master priority bit
+        use_priority_flags = lcd.LCDC.background_enable
 
-        for n in range(0x00, 0xA0, 4):
+        # CGB priotizes sprites located first in OAM
+        for n in range(0x9C, -0x04, -4):
             y = lcd.OAM[n] - 16 # Documentation states the y coordinate needs to be subtracted by 16
             x = lcd.OAM[n + 1] - 8 # Documentation states the x coordinate needs to be subtracted by 8
             tileindex = lcd.OAM[n + 2]
             attributes = lcd.OAM[n + 3]
             xflip = attributes & 0b00100000
             yflip = attributes & 0b01000000
-            spritepriority = (attributes & 0b10000000) and not ignore_priority
-            spritecache = (self._spritecache1 if attributes & 0b10000 else self._spritecache0)
+            OAMbgpriority = (attributes & 0b10000000)
+
+            # bit 3 selects tile vram-bank
+            spritecache = (self._spritecache1 if attributes & 0b1000 else self._spritecache0)
+            # bits 0-2 selects palette number
+            palette = attributes & 0b111
 
             for dy in range(spriteheight):
                 yy = spriteheight - dy - 1 if yflip else dy
                 if 0 <= y < ROWS:
                     for dx in range(8):
                         xx = 7 - dx if xflip else dx
-                        pixel = spritecache[8*tileindex + yy][xx]
+                        pixel = spritecache[palette][8*tileindex + yy][xx]
                         if 0 <= x < COLS:
-                            # import pdb; pdb.set_trace()
-                            # TODO: Checking `buffer[y][x] == bgpkey` is a bit of a hack
-                            if (spritepriority and not buffer[y][x] == bgpkey):
-                                # Add a fake alphachannel to the sprite for BG pixels. We can't just merge this
-                                # with the next 'if', as sprites can have an alpha channel in other ways
-                                pixel &= ~self.alphamask
+                            if use_priority_flags:
+                                bgmappriority = self._bg_priority[y][x]        
+                                col = self._col_i[y][x]
 
+                                if bgmappriority or (OAMbgpriority and not bgmappriority):
+                                    if not col == 0:
+                                        pixel &= ~self.alphamask
                             if pixel & self.alphamask:
-                                buffer[y][x] = pixel
+                                        buffer[y][x] = pixel
                         x += 1
                     x -= 8
                 y += 1
 
-#REMOVE ME: CLEAR CACHE SET ON UPDATE TO PALETTE REGISTERS IN MB MEMORY MANAGER?
-    def update_cache(self, lcd):
+    def update_cache(self, lcd):        
         if self.clearcache:
-            self.tiles_changed.clear()
-            for x in range(0x8000, 0x9800, 16):
-                self.tiles_changed.add(x)
-            self.clearcache = False
+            self.clear_cache()
+        self.update_tiles(lcd, self.tiles_changed0, 0)
+        self.update_tiles(lcd, self.tiles_changed1, 1)
 
-        for t in self.tiles_changed:
+        self.tiles_changed0.clear()
+        self.tiles_changed1.clear()
+
+    def update_tiles(self, lcd, tiles_changed, bank):
+        for t in tiles_changed:
             for k in range(0, 16, 2): # 2 bytes for each line
-                byte1 = lcd.getVRAM(t + k)
-                byte2 = lcd.getVRAM(t + k + 1)
+                byte1 = lcd.getVRAMbank(t + k, bank)
+                byte2 = lcd.getVRAMbank(t + k + 1, bank)
+                
                 y = (t+k-0x8000) // 2
 
                 for x in range(8):
+                    #index into the palette for the current pixel
                     colorcode = color_code(byte1, byte2, 7 - x)
+                    
+                    if bank:
+                        self._col_index1[y][x] = colorcode
+                    else:
+                        self._col_index0[y][x] = colorcode
 
-                    self._tilecache[y][x] = self.color_palette[lcd.BGP.getcolor(colorcode)]
-                    self._spritecache0[y][x] = self.color_palette[lcd.OBP0.getcolor(colorcode)]
-                    self._spritecache1[y][x] = self.color_palette[lcd.OBP1.getcolor(colorcode)]
+                    # update for the 8 palettes
+                    for p in range(8): 
+                        if bank:
+                            self._tilecache1[p][y][x] = self.convert_to_rgba(lcd.bcpd.getcolor(p, colorcode))
+                            self._spritecache1[p][y][x] = self.convert_to_rgba(lcd.ocpd.getcolor(p, colorcode))
 
-                    if colorcode == 0:
-                        self._spritecache0[y][x] &= ~self.alphamask
-                        self._spritecache1[y][x] &= ~self.alphamask
+                        else:
+                            self._tilecache0[p][y][x] = self.convert_to_rgba(lcd.bcpd.getcolor(p, colorcode))
+                            self._spritecache0[p][y][x] = self.convert_to_rgba(lcd.ocpd.getcolor(p, colorcode))
+                        
+                        # first color transparent for sprites
+                        if colorcode == 0:
+                            if bank: 
+                                self._spritecache1[p][y][x] &= ~self.alphamask
+                            else:
+                                self._spritecache0[p][y][x] &= ~self.alphamask           
 
-        self.tiles_changed.clear()
+    def clear_cache(self):
+        self.tiles_changed0.clear()  
+        self.tiles_changed1.clear()  
+        for x in range(0x8000, 0x9800, 16):
+            self.tiles_changed0.add(x)
+            self.tiles_changed1.add(x)
+        self.clearcache = False
+
 
     def blank_screen(self):
         # If the screen is off, fill it with a color.
-        color = self.color_palette[0]
+        color = 0xFFFFFFFF
         for y in range(ROWS):
             for x in range(COLS):
                 self._screenbuffer[y][x] = color
+
+    # converts a 24 bit RGB color to 32 bit RGBA
+    def convert_to_rgba(self, color):
+        return (color << 8) | self.alphamask
 
     def save_state(self, f):
         for y in range(ROWS):
@@ -182,3 +293,5 @@ class Renderer:
             self._scanlineparameters[y][3] = f.read()
             if state_version > 3:
                 self._scanlineparameters[y][4] = f.read()
+
+            

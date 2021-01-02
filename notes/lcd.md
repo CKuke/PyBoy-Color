@@ -25,16 +25,18 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - Bit 7: BG-to-OAM Priority
 
 ### TODO
-- REMEMBER TO REMOVE: Added temporary NoOffsetgetVRAM methods to lcd classes to avoid out of range error when fetching wt and bt values in render_screen in renderer.py
-- LCDC FF40 Control Register change bit 0 implementation: render_screen method in renderer class currently uses the background_enable bit, change this to make background rendering loose priority when CGB 
-- FF41 Stat is currently in MB, move to LCD? Does mode 3 need to be extented to account for the fact that CGB palette data can't be accessed?
-- FF44/45 LY/LYC currently in MB, move to base_lcd?
 - FF46 DMA OAM transfers currently in MB, move to base_lcd? Especially because CGB also adds VRAM DMA transfer functionality, where to put that then
-- maybe delete the VBK def at top of cgb_lcd, not used? 
 - save/load state methods for CGB
-- lidt forvirrende at der i cgb_lcd VBKregister både bliver læst ofte fra __active_bank, men der også er en get method. Forskellen er når man bare skal bruge active_bank værdien og når programmet egentligt prøver at læse fra registret
-- måske cgb_lcd ikke skal nedarve fra lcd - der er efteråhnden meget få ligheder
-- Tilføjet tiles_changed for hver bank, men clearcache er stadig samlet, kunne nok godt opdateres så det kun er den relevante bank der bliver clearet og ikke begge to, ville i hvert fald være hurtigere. Clearcache sættes i memory manager
+- hvis det kører alt for langsomt, så gør så update cache ikke holder dem alle hele tiden, men at de hentes når der er brug for dem
+- spritepriority and not buffer[y][x] == bgpkey
+- udregner backgroundattributes for hver ved hver scanline, kan måske godt optimeres, holde på nogle af værdierne, så kun opdatere, når der er blevet skrevet dertil? - kan gøre det på samme måde som de har 
+- skriv vram og getvram sammen med optional arguement
+- add yflip
+- LCDC bit 0, on cgb this is a master priority bit to always render sprites on top, but should background and window still become white?
+- Hvordan skal man lige sikre sig at det er color 0?
+- SPRITE PRIORITERING? Bare lige byt rundt!
+- Gør sb_priority til et memory view?
+- Måske også lige tilføje det der med baggrundstjek til DMG renderer?
 
 ### Notes
 **Sprites**: 8x8 or 8x16 tiles, 4 bytes
@@ -63,6 +65,12 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 
 **VRAM Indexing Method**: Currently only method 8000 (using $8000 as base pointer) is implemented, but there is also a method 8800 (using $9000 as base pointer), might have to implement this. BG and window can use both modes controlled by LCDC bit 4. 
 
+**Update_cache**: tile = 16 bytes af 8*8 pixels, hver pixel er altså 8 bits stor, angiver hvilke farver der skal til. 
+tilecache:
+    y: 
+
+
+
 ### Changes made
 - Added cgb_lcd class for CGB lcd
 - Added CGB variable to base_mbc, can be used to check if the loaded ROM is a CGB rom
@@ -75,5 +83,20 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - added cgb checks to memory manager when trying to use DMG palette registers
 - updated setVRAM methods to return the bank that was set in order to compensate for mm
 - instead of tiles_changed then keep track of tiles_changed_bank0/!
+- caches, en tile / sprite for hver bank, der 3d list nu, da kan holde 8 forskellige paletter hver (måske ikke hurtigste), også lavet en der kan bruges til at holde color index
+- rgba converter i cgb_renderer, flyt
+- tilføjet metode til at læse fra specifik bank i cgb_lcd
+- skriv om det der eksempel i mario med pipen, og hvordan det adskiller sig fra den anden
+- Vi har adskilt renderer og lcd fra hinanden hvor de før var en klasse, så de får også reference til hinanden, da vi så kan optimere hvad der skal opdateres
+- flytter update_tiles ansvaret fra mem_manager til lcd, for at optimere så det kun er den aktive bank 
+
+FIND FORHOLD MELLEM FARVER:
+PÅ EN MODERNE MASKINE: 24 BIT
+PÅ CGB: 15 BIT
+
+ADD CLEAR CACHE IN MEM_MANAGER VED DE NYE FARVE REGISTRE?
+    - SLET DE DMG FARVE REGISTRE?
 
 
+NOTES:
+Endianness, little endian for 16 bit 

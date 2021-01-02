@@ -13,6 +13,9 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         self.transfer_active = False
         self.curr_src = 0
         self.curr_dst = 0
+
+        self.key1 = 0
+        self.is_double_speed = False
     
     def get_io(self, addr):
         #print("%3s %6s" % ("get", hex(addr)))
@@ -35,19 +38,29 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             return self.lcd.SCY
         elif addr == 0xFF43:
             return self.lcd.SCX
-        elif addr == 0xFF47 and not self.cartridge.is_cgb:
+        elif addr == 0xFF47:
             return self.lcd.BGP.value
-        elif addr == 0xFF48 and not self.cartridge.is_cgb:
+        elif addr == 0xFF48:
             return self.lcd.OBP0.value
-        elif addr == 0xFF49 and not self.cartridge.is_cgb:
+        elif addr == 0xFF49:
             return self.lcd.OBP1.value
         elif addr == 0xFF4A:
             return self.lcd.WY
         elif addr == 0xFF4B:
             return self.lcd.WX
         # CGB registers
+        elif addr == 0xFF4D:
+            return self.get_key1()
         elif addr == 0xFF4F:
             return self.lcd.vbk.get()
+        elif addr == 0xFF68:
+            return self.lcd.bcps.get() | 0x40
+        elif addr == 0xFF69:
+            return self.lcd.bcpd.get() 
+        elif addr == 0xFF6A:
+            return self.lcd.ocps.get() | 0x40
+        elif addr == 0xFF6B:
+            return self.lcd.ocpd.get()
         elif addr == 0xFF70:
             return self.ram.read(addr)
         elif 0xFF51 <= addr <= 0xFF55:
@@ -83,13 +96,13 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             self.transfer_DMA(value)
         elif addr == 0xFF47:
             # TODO: Move out of MB
-            self.renderer.clearcache |= self.lcd.BGP.set(value)
+            self.lcd.BGP.set(value)
         elif addr == 0xFF48:
             # TODO: Move out of MB
-            self.renderer.clearcache |= self.lcd.OBP0.set(value)
+            self.lcd.OBP0.set(value)
         elif addr == 0xFF49:
             # TODO: Move out of MB
-            self.renderer.clearcache |= self.lcd.OBP1.set(value)
+            self.lcd.OBP1.set(value)
         elif addr == 0xFF4A:
             self.lcd.WY = value
         elif addr == 0xFF4B:
@@ -98,8 +111,20 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             self.mb.bootrom_enabled = False
             self.ram.write(addr, value)
         # CGB registers
+        elif addr == 0xFF4D:
+            self.set_key1(value)
         elif addr == 0xFF4F:
             self.lcd.vbk.set(value)
+        elif addr == 0xFF68:
+            self.lcd.bcps.set(value)
+        elif addr == 0xFF69:
+            self.lcd.bcpd.set(value)
+            self.renderer.clearcache = True 
+        elif addr == 0xFF6A:
+            self.lcd.ocps.set(value)
+        elif addr == 0xFF6B:
+            self.lcd.ocpd.set(value)        
+            self.renderer.clearcache = True 
         elif addr == 0xFF70:
             self.ram.write(addr, value)
         elif 0xFF51 <= addr <= 0xFF54:
@@ -109,15 +134,28 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         else:
             self.ram.write(addr, value)
 
+    def set_key1(self, value):
+        self.key1 = value & 0xFF
+    
+    def get_key1(self):
+        return self.key1
+
+    def switch_speed(self):
+        bit0 = self.key1 & 0b1
+        if bit0 == 1:
+            self.is_double_speed = not self.is_double_speed
+            self.key1 ^= 0b10000001
+    
+
     def set_hdma5(self, value):
         if self.transfer_active:
             bit7 = value & 0x80
             if bit7 == 0:
                 # terminate active transfer
-                print("terminating active transfer")
+                #print("terminating active transfer")
                 # TDOD: just for debugging
                 rem = self.hdma5
-                print("rem = %s" % hex(rem))
+                #print("rem = %s" % hex(rem))
 
                 #######################
                 self.transfer_active = False
@@ -135,7 +173,7 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             transfer_type = value >> 7
             if transfer_type == 0:
                 # General purpose DMA transfer
-                print("----- GDMA -----")
+                #print("----- GDMA -----")
                 for i in range(bytes_to_transfer):
                     #old = self.getitem(dst+i)
                     self.setitem(dst + i, self.getitem(src + i))
@@ -148,8 +186,8 @@ class CgbMemoryManager(mem_manager.MemoryManager):
                 self.hdma1 = 0xFF
             else:
                 # Hblank DMA transfer
-                print("----- HDMA -----")
-                print("input = %s" % hex(self.hdma5))
+                #print("----- HDMA -----")
+                #print("input = %s" % hex(self.hdma5))
                 
                 # set 0th bit to 0
                 self.hdma5 = self.hdma5 & 0x7F
@@ -160,9 +198,9 @@ class CgbMemoryManager(mem_manager.MemoryManager):
     def do_potential_transfer(self):
         if self.transfer_active:
             # TODO: debug code
-            print("remaining : %s" % hex(self.hdma5))
-            if self.hdma5 == 0:
-                print("hdma5 = 0")
+            #print("remaining : %s" % hex(self.hdma5))
+            #if self.hdma5 == 0:
+            #    print("hdma5 = 0")
             ###########
 
             src = self.curr_src & 0xFFF0
@@ -201,7 +239,7 @@ class CgbMemoryManager(mem_manager.MemoryManager):
         if 0xFF51 <= reg <= 0xFF54:
             raise Exception("Can not read HDMA1-HDMA4")
         else:
-            print("hdma5 read : %s" % hex(self.hdma5))
+            #print("hdma5 read : %s" % hex(self.hdma5))
             return self.hdma5 & 0xFF
 
     def set_hdma(self, reg, value):

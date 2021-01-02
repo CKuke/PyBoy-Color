@@ -58,11 +58,11 @@ class MemoryManager:
             return self.lcd.SCY
         elif addr == 0xFF43:
             return self.lcd.SCX
-        elif addr == 0xFF47 and not self.cartridge.is_cgb:
+        elif addr == 0xFF47:
             return self.lcd.BGP.value
-        elif addr == 0xFF48 and not self.cartridge.is_cgb:
+        elif addr == 0xFF48:
             return self.lcd.OBP0.value
-        elif addr == 0xFF49 and not self.cartridge.is_cgb:
+        elif addr == 0xFF49:
             return self.lcd.OBP1.value
         elif addr == 0xFF4A:
             return self.lcd.WY
@@ -79,8 +79,6 @@ class MemoryManager:
             self.cartridge.setitem(addr, value)
         elif 0x8000 <= addr < 0xA000:
             self.lcd.setVRAM(addr, value)
-            if addr < 0x9800:
-                self.renderer.tiles_changed.add(addr & 0xFFF0)
         elif 0xA000 <= addr < 0xC000:
             self.cartridge.setitem(addr, value)
         elif self.is_in_ram(addr):
