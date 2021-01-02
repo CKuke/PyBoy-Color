@@ -25,14 +25,8 @@ CGB stores an additional bg map of 32x32 bytes in VRAM bank 1. Each byte defines
 - Bit 7: BG-to-OAM Priority
 
 ### TODO
-- REMEMBER TO REMOVE: Added temporary NoOffsetgetVRAM methods to lcd classes to avoid out of range error when fetching wt and bt values in render_screen in renderer.py, ændrer i dette ved bare at lade den der getvram metode vælge enten at bruge 0x8000 indeksering eller ej, så den kan understøtte begge
-- FF41 Stat is currently in MB, move to LCD? Does mode 3 need to be extented to account for the fact that CGB palette data can't be accessed?
-- FF44/45 LY/LYC currently in MB, move to base_lcd?
 - FF46 DMA OAM transfers currently in MB, move to base_lcd? Especially because CGB also adds VRAM DMA transfer functionality, where to put that then
-- maybe delete the VBK def at top of cgb_lcd, not used? 
 - save/load state methods for CGB
-- måske cgb_lcd ikke skal nedarve fra lcd - der er efteråhnden meget få ligheder
-- clearcache er stadig samlet, opdater så det kun er for de relevante (spite eller tile) paletter der opdateres for performance
 - hvis det kører alt for langsomt, så gør så update cache ikke holder dem alle hele tiden, men at de hentes når der er brug for dem
 - spritepriority and not buffer[y][x] == bgpkey
 - udregner backgroundattributes for hver ved hver scanline, kan måske godt optimeres, holde på nogle af værdierne, så kun opdatere, når der er blevet skrevet dertil? - kan gøre det på samme måde som de har 
