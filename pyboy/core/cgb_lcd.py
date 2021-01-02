@@ -7,10 +7,11 @@ NUM_PALETTES = 8
 NUM_COLORS = 4
 
 class cgbLCD(lcd.LCD):
-    def __init__(self):
-        lcd.LCD.__init__(self)
+    def __init__(self, renderer):
+        lcd.LCD.__init__(self, renderer)
+        self.renderer = renderer
         self.VRAM1 = array("B", [0] * lcd.VBANK_SIZE)
-
+        
         #8 palettes of 4 colors each 2 bytes
         self.sprite_palette_mem = array("I", [0x0] * NUM_PALETTES * NUM_COLORS)
         self.bg_palette_mem = array("I", [0xFF] * NUM_PALETTES * NUM_COLORS)
@@ -22,18 +23,25 @@ class cgbLCD(lcd.LCD):
         self.ocpd = PaletteColorRegister(self.sprite_palette_mem, self.ocps)
 
     def setVRAM(self, i, value):
+        if not 0x8000 <= i < 0xA000:
+            raise IndexError("Make sure adress in setVRAM is a valid VRAM adress: 0x8000 <= addr < 0xA000, tried %s" % hex(i))
+        
         if self.vbk.active_bank == 0:
             self.VRAM0[i - 0x8000] = value
+            if i < 0x9800:
+                self.renderer.tiles_changed0.add(i & 0xFFF0)
         else:
             self.VRAM1[i - 0x8000] = value
-    
+            if i < 0x9800:
+                self.renderer.tiles_changed1.add(i & 0xFFF0)
+
     def getVRAM(self, i):
         if self.vbk.active_bank == 0:
             return self.VRAM0[i - 0x8000]
         else:
             return self.VRAM1[i - 0x8000]
 
-    def getVRAMbank(self, i, bank = 0, offset = True):
+    def getVRAMbank(self, i, bank, offset = True):
         i_off = 0x8000 if offset else 0x0
         if bank == 0:
             return self.VRAM0[i - i_off]
@@ -118,7 +126,7 @@ class PaletteColorRegister:
         #each palette = 8 bytes or 4 colors of 2 bytes
         if paletteindex > 7 or colorindex > 3:
             raise IndexError("Palette Mem Index Error, tried: Palette %s color %s" 
-                % paletteindex, colorindex)
+                % (paletteindex, colorindex))
         
         i = paletteindex * 4 + colorindex
         color = self.palette_mem[i] 
@@ -140,7 +148,7 @@ class PaletteColorRegister:
         # colors 5 bits
         color_mask = 0x1F
 
-        red = (color & color_mask) << 3        
+        red = (color & color_mask) << 3       
         green = ((color >> 5) & color_mask) << 3
         blue = ((color >> 10) & color_mask) << 3
         

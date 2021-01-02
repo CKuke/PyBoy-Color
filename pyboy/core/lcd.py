@@ -10,8 +10,9 @@ OBJECT_ATTRIBUTE_MEMORY = 0xA0
 LCDC, STAT, SCY, SCX, LY, LYC, DMA, BGP, OBP0, OBP1, WY, WX = range(0xFF40, 0xFF4C)
 
 class LCD:
-    def __init__(self):
+    def __init__(self, renderer):
         self.VRAM0 = array("B", [0] * VBANK_SIZE)
+        self.renderer = renderer
         self.OAM = array("B", [0] * OBJECT_ATTRIBUTE_MEMORY)
 
         self.LCDC = LCDCRegister(0)
@@ -28,6 +29,12 @@ class LCD:
         self.WX = 0x00
 
     def setVRAM(self, i, value):
+        if not 0x8000 <= i < 0xA000:
+            raise IndexError("Make sure adress in setVRAM is a valid VRAM adress: 0x8000 <= addr < 0xA000, tried %s" % hex(i))
+
+        if i < 0x9800:
+            self.renderer.tiles_changed.add(i & 0xFFF0)
+        
         self.VRAM0[i - 0x8000] = value
     
     def getVRAM(self, i, offset = True):

@@ -93,6 +93,8 @@ tilecache:
 - rgba converter i cgb_renderer, flyt
 - tilføjet metode til at læse fra specifik bank i cgb_lcd
 - skriv om det der eksempel i mario med pipen, og hvordan det adskiller sig fra den anden
+- Vi har adskilt renderer og lcd fra hinanden hvor de før var en klasse, så de får også reference til hinanden, da vi så kan optimere hvad der skal opdateres
+- flytter update_tiles ansvaret fra mem_manager til lcd, for at optimere så det kun er den aktive bank 
 
 FIND FORHOLD MELLEM FARVER:
 PÅ EN MODERNE MASKINE: 24 BIT

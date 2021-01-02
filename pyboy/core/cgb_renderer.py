@@ -19,7 +19,8 @@ class CGBRenderer:
         self.buffer_dims = (ROWS, COLS)
 
         self.clearcache = False
-        self.tiles_changed = set([])
+        self.tiles_changed0 = set([])
+        self.tiles_changed1 = set([])
 
         tiles_bank = 384
         
@@ -177,7 +178,6 @@ class CGBRenderer:
         use_priority_flags = lcd.LCDC.background_enable
 
         # CGB priotizes sprites located first in OAM
-        # so we render the first ones last
         for n in range(0x9C, -0x04, -4):
             y = lcd.OAM[n] - 16 # Documentation states the y coordinate needs to be subtracted by 16
             x = lcd.OAM[n + 1] - 8 # Documentation states the x coordinate needs to be subtracted by 8
@@ -212,46 +212,57 @@ class CGBRenderer:
                     x -= 8
                 y += 1
 
-    def update_cache(self, lcd):
+    def update_cache(self, lcd):        
         if self.clearcache:
-            self.tiles_changed.clear()  
-            for x in range(0x8000, 0x9800, 16):
-                self.tiles_changed.add(x)
-            self.clearcache = False
+            self.clear_cache()
+        self.update_tiles(lcd, self.tiles_changed0, 0)
+        self.update_tiles(lcd, self.tiles_changed1, 1)
 
-        for t in self.tiles_changed:
+        self.tiles_changed0.clear()
+        self.tiles_changed1.clear()
+
+    def update_tiles(self, lcd, tiles_changed, bank):
+        for t in tiles_changed:
             for k in range(0, 16, 2): # 2 bytes for each line
-                bank0_byte1 = lcd.getVRAMbank(t + k, 0)
-                bank0_byte2 = lcd.getVRAMbank(t + k + 1, 0)
-                
-                bank1_byte1 = lcd.getVRAMbank(t + k, 1)
-                bank1_byte2 = lcd.getVRAMbank(t + k + 1, 1)
+                byte1 = lcd.getVRAMbank(t + k, bank)
+                byte2 = lcd.getVRAMbank(t + k + 1, bank)
                 
                 y = (t+k-0x8000) // 2
 
                 for x in range(8):
                     #index into the palette for the current pixel
-                    bank0_colorcode = color_code(bank0_byte1, bank0_byte2, 7 - x)
-                    bank1_colorcode = color_code(bank1_byte1, bank1_byte2, 7 - x)
-                
-                    self._col_index0[y][x] = bank0_colorcode
-                    self._col_index1[y][x] = bank1_colorcode
+                    colorcode = color_code(byte1, byte2, 7 - x)
+                    
+                    if bank:
+                        self._col_index1[y][x] = colorcode
+                    else:
+                        self._col_index0[y][x] = colorcode
 
                     # update for the 8 palettes
                     for p in range(8): 
-                        self._tilecache0[p][y][x] = self.convert_to_rgba(lcd.bcpd.getcolor(p, bank0_colorcode))
-                        self._tilecache1[p][y][x] = self.convert_to_rgba(lcd.bcpd.getcolor(p, bank1_colorcode))
+                        if bank:
+                            self._tilecache1[p][y][x] = self.convert_to_rgba(lcd.bcpd.getcolor(p, colorcode))
+                            self._spritecache1[p][y][x] = self.convert_to_rgba(lcd.ocpd.getcolor(p, colorcode))
 
-                        self._spritecache0[p][y][x] = self.convert_to_rgba(lcd.ocpd.getcolor(p, bank0_colorcode))
-                        self._spritecache1[p][y][x] = self.convert_to_rgba(lcd.ocpd.getcolor(p, bank1_colorcode))
+                        else:
+                            self._tilecache0[p][y][x] = self.convert_to_rgba(lcd.bcpd.getcolor(p, colorcode))
+                            self._spritecache0[p][y][x] = self.convert_to_rgba(lcd.ocpd.getcolor(p, colorcode))
                         
                         # first color transparent for sprites
-                        if bank0_colorcode == 0:
-                            self._spritecache0[p][y][x] &= ~self.alphamask           
-                        if bank1_colorcode == 0:
-                            self._spritecache1[p][y][x] &= ~self.alphamask
+                        if colorcode == 0:
+                            if bank: 
+                                self._spritecache1[p][y][x] &= ~self.alphamask
+                            else:
+                                self._spritecache0[p][y][x] &= ~self.alphamask           
 
-        self.tiles_changed.clear()
+    def clear_cache(self):
+        self.tiles_changed0.clear()  
+        self.tiles_changed1.clear()  
+        for x in range(0x8000, 0x9800, 16):
+            self.tiles_changed0.add(x)
+            self.tiles_changed1.add(x)
+        self.clearcache = False
+
 
     def blank_screen(self):
         # If the screen is off, fill it with a color.
