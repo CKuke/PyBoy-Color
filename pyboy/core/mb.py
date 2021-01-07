@@ -145,12 +145,13 @@ class Motherboard:
         self.cycles_remaining += cycles_period
 
         # TODO: Temporary hdma transfer
-        mode = self.getitem(STAT) & 0b11
-        if mode == 0:
-            stat_3 = (self.getitem(STAT) & 0b00001000) >> 3
-            if stat_3 == 1:
-                self.mem_manager.do_potential_transfer()
-                self.cycles_remaining -= 8 # TODO: adjust for double speed
+        if self.cartridge.is_cgb:
+            mode = self.getitem(STAT) & 0b11
+            if mode == 0:
+                stat_3 = (self.getitem(STAT) & 0b00001000) >> 3
+                if stat_3 == 1:
+                    self.mem_manager.do_potential_transfer()
+                    self.cycles_remaining -= 8 # TODO: adjust for double speed
         ##############################
 
         while self.cycles_remaining > 0:
