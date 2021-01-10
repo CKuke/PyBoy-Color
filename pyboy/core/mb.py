@@ -184,22 +184,22 @@ class Motherboard:
         lcdenabled = self.lcd.LCDC.lcd_enable
         if lcdenabled:
 
-            mode0_dots = 206
-            mode1_dots = 456
-            mode2_dots = 80
-            mode3_dots = 170
-
-            if self.cartridge.is_cgb:
-                if self.mem_manager.is_double_speed:
-                    mode0_dots *= 2
-                    mode1_dots *= 2
-                    mode2_dots *= 2
-                    mode3_dots *= 2
-
             # TODO: the 19, 41 and 49._ticks should correct for longer instructions
             # Iterate the 144 lines on screen
             for y in range(144):
                 self.check_LYC(y)
+
+                mode0_dots = 206
+                mode1_dots = 456
+                mode2_dots = 80
+                mode3_dots = 170
+
+                if self.cartridge.is_cgb:
+                    if self.mem_manager.is_double_speed:
+                        mode0_dots *= 2
+                        mode1_dots *= 2
+                        mode2_dots *= 2
+                        mode3_dots *= 2
 
                 # Mode 2
                 # TODO: Move out of MB
