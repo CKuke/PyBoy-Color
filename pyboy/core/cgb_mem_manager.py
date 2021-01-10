@@ -152,12 +152,6 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             bit7 = value & 0x80
             if bit7 == 0:
                 # terminate active transfer
-                #print("terminating active transfer")
-                # TDOD: just for debugging
-                rem = self.hdma5
-                #print("rem = %s" % hex(rem))
-
-                #######################
                 self.transfer_active = False
                 self.hdma5 = (self.hdma5 & 0x7F) | 0x80
             else:
@@ -173,12 +167,8 @@ class CgbMemoryManager(mem_manager.MemoryManager):
             transfer_type = value >> 7
             if transfer_type == 0:
                 # General purpose DMA transfer
-                #print("----- GDMA -----")
                 for i in range(bytes_to_transfer):
-                    #old = self.getitem(dst+i)
                     self.setitem(dst + i, self.getitem(src + i))
-                    #new = self.getitem(dst+i)
-                    #print("%s --> %s" % (old,new))
                 self.hdma5 = 0xFF
                 self.hdma4 = 0xFF
                 self.hdma3 = 0xFF
@@ -186,9 +176,6 @@ class CgbMemoryManager(mem_manager.MemoryManager):
                 self.hdma1 = 0xFF
             else:
                 # Hblank DMA transfer
-                #print("----- HDMA -----")
-                #print("input = %s" % hex(self.hdma5))
-                
                 # set 0th bit to 0
                 self.hdma5 = self.hdma5 & 0x7F
                 self.transfer_active = True
@@ -197,20 +184,12 @@ class CgbMemoryManager(mem_manager.MemoryManager):
 
     def do_potential_transfer(self):
         if self.transfer_active:
-            # TODO: debug code
-            #print("remaining : %s" % hex(self.hdma5))
-            #if self.hdma5 == 0:
-            #    print("hdma5 = 0")
-            ###########
 
             src = self.curr_src & 0xFFF0
             dst = (self.curr_dst & 0x1FF0) | 0x8000
 
             for i in range(0x10):
-                #old = self.getitem(dst+i)
                 self.setitem(dst + i, self.getitem(src + i))
-                #new = self.getitem(dst+i)
-                #print("%s --> %s" % (old,new))
 
             self.curr_dst += 0x10
             self.curr_src += 0x10
@@ -229,7 +208,6 @@ class CgbMemoryManager(mem_manager.MemoryManager):
 
             self.hdma5 -= 1
             if self.hdma5 == -1:
-                print("underflow")
                 self.transfer_active = False
                 self.hdma5 = 0xFF
                 
