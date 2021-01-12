@@ -145,12 +145,13 @@ class Motherboard:
         self.cycles_remaining += cycles_period
 
         # TODO: Temporary hdma transfer
-        mode = self.getitem(STAT) & 0b11
-        if mode == 0:
-            stat_3 = (self.getitem(STAT) & 0b00001000) >> 3
-            if stat_3 == 1:
-                self.mem_manager.do_potential_transfer()
-                self.cycles_remaining -= 8 # TODO: adjust for double speed
+        if self.cartridge.is_cgb:
+            mode = self.getitem(STAT) & 0b11
+            if mode == 0:
+                stat_3 = (self.getitem(STAT) & 0b00001000) >> 3
+                if stat_3 == 1:
+                    self.mem_manager.do_potential_transfer()
+                    self.cycles_remaining -= 8 # TODO: adjust for double speed
         ##############################
 
         while self.cycles_remaining > 0:
@@ -182,26 +183,39 @@ class Motherboard:
     def tickframe(self):
         lcdenabled = self.lcd.LCDC.lcd_enable
         if lcdenabled:
+
             # TODO: the 19, 41 and 49._ticks should correct for longer instructions
             # Iterate the 144 lines on screen
             for y in range(144):
                 self.check_LYC(y)
 
+                mode0_dots = 206
+                mode1_dots = 456
+                mode2_dots = 80
+                mode3_dots = 170
+
+                if self.cartridge.is_cgb:
+                    if self.mem_manager.is_double_speed:
+                        mode0_dots *= 2
+                        mode1_dots *= 2
+                        mode2_dots *= 2
+                        mode3_dots *= 2
+
                 # Mode 2
                 # TODO: Move out of MB
                 self.set_STAT_mode(2)
-                self.calculate_cycles(80)
+                self.calculate_cycles(mode2_dots)
 
                 # Mode 3
                 # TODO: Move out of MB
                 self.set_STAT_mode(3)
-                self.calculate_cycles(170)
+                self.calculate_cycles(mode3_dots)
                 self.renderer.scanline(y, self.lcd)
 
                 # Mode 0
                 # TODO: Move out of MB
                 self.set_STAT_mode(0)
-                self.calculate_cycles(206)
+                self.calculate_cycles(mode0_dots)
                 
                 
             self.cpu.set_interruptflag(VBLANK)
@@ -214,7 +228,7 @@ class Motherboard:
 
                 # Mode 1
                 self.set_STAT_mode(1)
-                self.calculate_cycles(456)
+                self.calculate_cycles(mode1_dots)
         else:
             # https://www.reddit.com/r/EmuDev/comments/6r6gf3
             # TODO: What happens if LCD gets turned on/off mid-cycle?
