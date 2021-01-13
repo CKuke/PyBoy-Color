@@ -33,7 +33,7 @@ class LCD:
             raise IndexError("Make sure adress in setVRAM is a valid VRAM adress: 0x8000 <= addr < 0xA000, tried %s" % hex(i))
 
         if i < 0x9800:
-            self.renderer.tiles_changed.add(i & 0xFFF0)
+            self.renderer.tiles_changed0.add(i & 0xFFF0)
         
         self.VRAM0[i - 0x8000] = value
     

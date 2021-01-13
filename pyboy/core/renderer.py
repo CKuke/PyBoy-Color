@@ -11,16 +11,18 @@ except ImportError:
     cythonmode = False
 
 class Renderer:
-    def __init__(self, color_palette):
+    def __init__(self, color_palette, obj0_palette = None, obj1_palette = None):
         self.alphamask = 0xFF
 
         self.color_palette = [(c << 8) | self.alphamask for c in color_palette]
+        self.obj0_palette = [(c << 8) | self.alphamask for c in obj0_palette] if obj0_palette else self.color_palette
+        self.obj1_palette = [(c << 8) | self.alphamask for c in obj0_palette] if obj1_palette else self.color_palette
         self.color_format = "RGBA"
 
         self.buffer_dims = (ROWS, COLS)
 
         self.clearcache = False
-        self.tiles_changed = set([])
+        self.tiles_changed0 = set([])
 
         tiles = 384
         
@@ -46,7 +48,7 @@ class Renderer:
             self._spritecache1 = [v[i:i + 8] for i in range(0, tiles * 8 * 8, 8)]
             self._screenbuffer_ptr = c_void_p(self._screenbuffer_raw.buffer_info()[0])
 
-        self._scanlineparameters = [[0, 0, 0, 0, 0] for _ in range(ROWS)]
+        self._scanlineparameters = [[0, 0, 0, 0, 0, 0, 0] for _ in range(ROWS)]
 
     def scanline(self, y, lcd):
         bx, by = lcd.getviewport()
@@ -56,16 +58,19 @@ class Renderer:
         self._scanlineparameters[y][2] = wx
         self._scanlineparameters[y][3] = wy
         self._scanlineparameters[y][4] = lcd.LCDC.tiledata_select
+        self._scanlineparameters[y][5] = lcd.LCDC.backgroundmap_select
+        self._scanlineparameters[y][6] = lcd.LCDC.windowmap_select
 
     def render_screen(self, lcd):
         self.update_cache(lcd)
         # All VRAM addresses are offset by 0x8000
         # Following addresses are 0x9800 and 0x9C00
-        background_offset = 0x1800 if lcd.LCDC.backgroundmap_select == 0 else 0x1C00
-        wmap = 0x1800 if lcd.LCDC.windowmap_select == 0 else 0x1C00
 
         for y in range(ROWS):
-            bx, by, wx, wy, tile_data_select = self._scanlineparameters[y]
+            bx, by, wx, wy, tile_data_select, bgmap_select, wmap_select = self._scanlineparameters[y]
+            background_offset = 0x1800 if bgmap_select == 0 else 0x1C00
+            wmap = 0x1800 if wmap_select == 0 else 0x1C00
+            
             # Used for the half tile at the left side when scrolling
             offset = bx & 0b111
 
@@ -132,12 +137,12 @@ class Renderer:
 
     def update_cache(self, lcd):
         if self.clearcache:
-            self.tiles_changed.clear()
+            self.tiles_changed0.clear()
             for x in range(0x8000, 0x9800, 16):
-                self.tiles_changed.add(x)
+                self.tiles_changed0.add(x)
             self.clearcache = False
 
-        for t in self.tiles_changed:
+        for t in self.tiles_changed0:
             for k in range(0, 16, 2): # 2 bytes for each line
                 byte1 = lcd.getVRAM(t + k)
                 byte2 = lcd.getVRAM(t + k + 1)
@@ -145,16 +150,15 @@ class Renderer:
 
                 for x in range(8):
                     colorcode = color_code(byte1, byte2, 7 - x)
-
                     self._tilecache[y][x] = self.color_palette[lcd.BGP.getcolor(colorcode)]
-                    self._spritecache0[y][x] = self.color_palette[lcd.OBP0.getcolor(colorcode)]
-                    self._spritecache1[y][x] = self.color_palette[lcd.OBP1.getcolor(colorcode)]
+                    self._spritecache0[y][x] = self.obj0_palette[lcd.OBP0.getcolor(colorcode)]
+                    self._spritecache1[y][x] = self.obj1_palette[lcd.OBP1.getcolor(colorcode)]
 
                     if colorcode == 0:
                         self._spritecache0[y][x] &= ~self.alphamask
                         self._spritecache1[y][x] &= ~self.alphamask
 
-        self.tiles_changed.clear()
+        self.tiles_changed0.clear()
 
     def blank_screen(self):
         # If the screen is off, fill it with a color.

@@ -175,7 +175,7 @@ main:
 INCLUDE "logo.asm"
 
 SECTION "epilog", ROM0[$00FC]
-end
+end:
     ld A, $1
     ld [$FF00+$50], A
 

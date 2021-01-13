@@ -76,7 +76,7 @@ class CGBRenderer:
                 self._spritecache0.append(deepcopy(self.sc0))
                 self._spritecache1.append(deepcopy(self.sc1))
 
-        self._scanlineparameters = [[0, 0, 0, 0, 0] for _ in range(ROWS)]
+        self._scanlineparameters = [[0, 0, 0, 0, 0, 0, 0] for _ in range(ROWS)]
         
         self._backgroundmapattributes = [0, 0, 0, 0, 0]
         self._col_i = [[0] * COLS for _ in range(ROWS)]
@@ -90,6 +90,8 @@ class CGBRenderer:
         self._scanlineparameters[y][2] = wx
         self._scanlineparameters[y][3] = wy
         self._scanlineparameters[y][4] = lcd.LCDC.tiledata_select
+        self._scanlineparameters[y][5] = lcd.LCDC.backgroundmap_select
+        self._scanlineparameters[y][6] = lcd.LCDC.windowmap_select
 
     def getbackgroundmapattributes(self, lcd, i):
         tile_num = lcd.getVRAMbank(i, 1, False)
@@ -109,11 +111,12 @@ class CGBRenderer:
         self.update_cache(lcd)
         # All VRAM addresses are offset by 0x8000
         # Following addresses are 0x9800 and 0x9C00
-        background_offset = 0x1800 if lcd.LCDC.backgroundmap_select == 0 else 0x1C00
-        wmap = 0x1800 if lcd.LCDC.windowmap_select == 0 else 0x1C00
 
         for y in range(ROWS):
-            bx, by, wx, wy, tile_data_select = self._scanlineparameters[y]
+            bx, by, wx, wy, tile_data_select, bgmap_select, wmap_select = self._scanlineparameters[y]
+            background_offset = 0x1800 if bgmap_select == 0 else 0x1C00
+            wmap = 0x1800 if wmap_select == 0 else 0x1C00
+            
             # Used for the half tile at the left side when scrolling
             offset = bx & 0b111
 

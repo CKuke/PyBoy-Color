@@ -22,5 +22,5 @@ main:
     ld A, $1
 
 SECTION "epilog", ROM0[$00FE]
-end
+end:
     ld [$FF00+$50], A

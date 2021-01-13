@@ -119,13 +119,10 @@ class MemoryManager:
         elif addr == 0xFF46:
             self.transfer_DMA(value)
         elif addr == 0xFF47:
-            # TODO: Move out of MB
             self.renderer.clearcache |= self.lcd.BGP.set(value)
         elif addr == 0xFF48:
-            # TODO: Move out of MB
             self.renderer.clearcache |= self.lcd.OBP0.set(value)
         elif addr == 0xFF49:
-            # TODO: Move out of MB
             self.renderer.clearcache |= self.lcd.OBP1.set(value)
         elif addr == 0xFF4A:
             self.lcd.WY = value

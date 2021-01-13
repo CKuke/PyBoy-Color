@@ -174,7 +174,7 @@ def RRCA_0F(cpu): # 0F RRCA
 
 
 def STOP_10(cpu, v): # 10 STOP 0
-    if cpu.mb.cartridge.is_cgb:
+    if cpu.mb.is_cgb:
         cpu.mb.mem_manager.switch_speed()
         cpu.mb.mem_manager.set_io(0xFF04, 0)
     cpu.PC += 2

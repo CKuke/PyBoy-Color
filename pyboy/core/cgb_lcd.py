@@ -13,7 +13,7 @@ class cgbLCD(lcd.LCD):
         self.VRAM1 = array("B", [0] * lcd.VBANK_SIZE)
         
         #8 palettes of 4 colors each 2 bytes
-        self.sprite_palette_mem = array("I", [0x0] * NUM_PALETTES * NUM_COLORS)
+        self.sprite_palette_mem = array("I", [0xFF] * NUM_PALETTES * NUM_COLORS)
         self.bg_palette_mem = array("I", [0xFF] * NUM_PALETTES * NUM_COLORS)
 
         self.vbk = VBKregister()
@@ -35,11 +35,12 @@ class cgbLCD(lcd.LCD):
             if i < 0x9800:
                 self.renderer.tiles_changed1.add(i & 0xFFF0)
 
-    def getVRAM(self, i):
+    def getVRAM(self, i, offset = True):
+        i_off = 0x8000 if offset else 0x0
         if self.vbk.active_bank == 0:
-            return self.VRAM0[i - 0x8000]
+            return self.VRAM0[i - i_off]
         else:
-            return self.VRAM1[i - 0x8000]
+            return self.VRAM1[i - i_off]
 
     def getVRAMbank(self, i, bank, offset = True):
         i_off = 0x8000 if offset else 0x0

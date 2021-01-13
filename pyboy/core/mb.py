@@ -15,7 +15,7 @@ VBLANK, LCDC, TIMER, SERIAL, HIGHTOLOW = range(5)
 STAT, _, _, LY, LYC = range(0xFF41, 0xFF46)
 
 class Motherboard:
-    def __init__(self, gamerom_file, bootrom_file, color_palette, disable_renderer, sound_enabled, profiling=False, CGB=0):
+    def __init__(self, gamerom_file, bootrom_file, color_palette, disable_renderer, sound_enabled, dmg, profiling=False):
         if bootrom_file is not None:
             logger.info("Boot-ROM file provided")
 
@@ -24,23 +24,15 @@ class Motherboard:
         self.timer = timer.Timer()
         self.interaction = interaction.Interaction()
         self.cartridge = cartridge.load_cartridge(gamerom_file)
-        self.bootrom = bootrom.BootROM(bootrom_file)
+        self.bootrom = bootrom.BootROM(bootrom_file, dmg)
         self.cpu = cpu.CPU(self, profiling)
 
         self.sound_enabled = sound_enabled
         self.sound = sound.Sound()
-        
-        if self.cartridge.is_cgb:
-            logger.info("Started as Game Boy Color")
-            self.renderer = cgb_renderer.CGBRenderer()
-            self.lcd = cgb_lcd.cgbLCD(self.renderer)
-            self.ram = cgb_ram.CgbRam(random=False)
-            self.mem_manager = cgb_mem_manager.CgbMemoryManager(
-                self, self.bootrom, self.cartridge, 
-                self.lcd, self.timer, self.sound, self.ram,
-                self.renderer) 
 
-        else:
+        self.is_cgb = not dmg
+        
+        if dmg:
             logger.info("Started as Game Boy")
             self.renderer = renderer.Renderer(color_palette)
             self.lcd = lcd.LCD(self.renderer)
@@ -49,6 +41,23 @@ class Motherboard:
                 self, self.bootrom, self.cartridge, 
                 self.lcd, self.timer, self.sound, self.ram,
                 self.renderer)
+        else:
+            logger.info("Started as Game Boy Color")
+            if self.cartridge.is_cgb:
+                self.renderer = cgb_renderer.CGBRenderer()
+            else:
+                # Running DMG ROM on CGB hardware
+                # use the default palettes
+                bg_pal   = (0xFFFFFF, 0x7BFF31, 0x0063C5, 0x000000)
+                obj0_pal = (0xFFFFFF, 0xFF8484, 0xFF8484, 0x000000)
+                obj1_pal = (0xFFFFFF, 0xFF8484, 0xFF8484, 0x000000)
+                self.renderer = renderer.Renderer(bg_pal, obj0_pal, obj1_pal)                
+            self.lcd = cgb_lcd.cgbLCD(self.renderer)
+            self.ram = cgb_ram.CgbRam(random=False)
+            self.mem_manager = cgb_mem_manager.CgbMemoryManager(
+                self, self.bootrom, self.cartridge, 
+                self.lcd, self.timer, self.sound, self.ram,
+                self.renderer) 
 
 
         self.disable_renderer = disable_renderer
@@ -145,7 +154,7 @@ class Motherboard:
         self.cycles_remaining += cycles_period
 
         # TODO: Temporary hdma transfer
-        if self.cartridge.is_cgb:
+        if self.is_cgb:
             mode = self.getitem(STAT) & 0b11
             if mode == 0:
                 stat_3 = (self.getitem(STAT) & 0b00001000) >> 3
@@ -194,7 +203,7 @@ class Motherboard:
                 mode2_dots = 80
                 mode3_dots = 170
 
-                if self.cartridge.is_cgb:
+                if self.is_cgb:
                     if self.mem_manager.is_double_speed:
                         mode0_dots *= 2
                         mode1_dots *= 2
