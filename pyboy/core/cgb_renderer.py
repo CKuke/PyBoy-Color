@@ -76,7 +76,7 @@ class CGBRenderer:
                 self._spritecache0.append(deepcopy(self.sc0))
                 self._spritecache1.append(deepcopy(self.sc1))
 
-        self._scanlineparameters = [[0, 0, 0, 0, 0, 0, 0] for _ in range(ROWS)]
+        self._scanlineparameters = [[0, 0, 0, 0, 0, 0, 0, 0, 0] for _ in range(ROWS)]
         
         self._backgroundmapattributes = [0, 0, 0, 0, 0]
         self._col_i = [[0] * COLS for _ in range(ROWS)]
@@ -92,6 +92,9 @@ class CGBRenderer:
         self._scanlineparameters[y][4] = lcd.LCDC.tiledata_select
         self._scanlineparameters[y][5] = lcd.LCDC.backgroundmap_select
         self._scanlineparameters[y][6] = lcd.LCDC.windowmap_select
+        self._scanlineparameters[y][7] = lcd.LCDC.window_enable
+        self._scanlineparameters[y][8] = lcd.LCDC.background_enable
+
 
     def getbackgroundmapattributes(self, lcd, i):
         tile_num = lcd.getVRAMbank(i, 1, False)
@@ -113,7 +116,7 @@ class CGBRenderer:
         # Following addresses are 0x9800 and 0x9C00
 
         for y in range(ROWS):
-            bx, by, wx, wy, tile_data_select, bgmap_select, wmap_select = self._scanlineparameters[y]
+            bx, by, wx, wy, tile_data_select, bgmap_select, wmap_select, window_enable, _  = self._scanlineparameters[y]
             background_offset = 0x1800 if bgmap_select == 0 else 0x1C00
             wmap = 0x1800 if wmap_select == 0 else 0x1C00
             
@@ -122,7 +125,7 @@ class CGBRenderer:
 
             for x in range(COLS):
                 # WINDOW
-                if lcd.LCDC.window_enable and wy <= y and wx <= x:
+                if window_enable and wy <= y and wx <= x:
                     index = wmap + (y-wy) // 8 * 32 % 0x400 + (x-wx) // 8 % 32
                     wt = lcd.getVRAMbank(index, 0, False)
                     
@@ -177,9 +180,6 @@ class CGBRenderer:
         # - Prioritizes sprite in inverted order
         spriteheight = 16 if lcd.LCDC.sprite_height else 8
         
-        # On CGB LCDC bit 0 is a master priority bit
-        use_priority_flags = lcd.LCDC.background_enable
-
         # CGB priotizes sprites located first in OAM
         for n in range(0x9C, -0x04, -4):
             y = lcd.OAM[n] - 16 # Documentation states the y coordinate needs to be subtracted by 16
@@ -202,13 +202,16 @@ class CGBRenderer:
                         xx = 7 - dx if xflip else dx
                         pixel = spritecache[palette][8*tileindex + yy][xx]
                         if 0 <= x < COLS:
+                            use_priority_flags = self._scanlineparameters[y][8]
                             if use_priority_flags:
                                 bgmappriority = self._bg_priority[y][x]        
                                 col = self._col_i[y][x]
-
-                                if bgmappriority or (OAMbgpriority and not bgmappriority):
+                                if bgmappriority:
                                     if not col == 0:
                                         pixel &= ~self.alphamask
+                                elif OAMbgpriority:
+                                    if not col == 0:
+                                        pixel &= ~self.alphamask                       
                             if pixel & self.alphamask:
                                         buffer[y][x] = pixel
                         x += 1

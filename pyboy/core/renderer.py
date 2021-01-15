@@ -48,7 +48,7 @@ class Renderer:
             self._spritecache1 = [v[i:i + 8] for i in range(0, tiles * 8 * 8, 8)]
             self._screenbuffer_ptr = c_void_p(self._screenbuffer_raw.buffer_info()[0])
 
-        self._scanlineparameters = [[0, 0, 0, 0, 0, 0, 0] for _ in range(ROWS)]
+        self._scanlineparameters = [[0, 0, 0, 0, 0, 0, 0, 0, 0] for _ in range(ROWS)]
 
     def scanline(self, y, lcd):
         bx, by = lcd.getviewport()
@@ -60,6 +60,8 @@ class Renderer:
         self._scanlineparameters[y][4] = lcd.LCDC.tiledata_select
         self._scanlineparameters[y][5] = lcd.LCDC.backgroundmap_select
         self._scanlineparameters[y][6] = lcd.LCDC.windowmap_select
+        self._scanlineparameters[y][7] = lcd.LCDC.window_enable
+        self._scanlineparameters[y][8] = lcd.LCDC.background_enable
 
     def render_screen(self, lcd):
         self.update_cache(lcd)
@@ -67,7 +69,7 @@ class Renderer:
         # Following addresses are 0x9800 and 0x9C00
 
         for y in range(ROWS):
-            bx, by, wx, wy, tile_data_select, bgmap_select, wmap_select = self._scanlineparameters[y]
+            bx, by, wx, wy, tile_data_select, bgmap_select, wmap_select, window_enable, bg_enable = self._scanlineparameters[y]
             background_offset = 0x1800 if bgmap_select == 0 else 0x1C00
             wmap = 0x1800 if wmap_select == 0 else 0x1C00
             
@@ -83,7 +85,7 @@ class Renderer:
                         # add 256 for offset (reduces to + 128)
                         wt = (wt ^ 0x80) + 128
                     self._screenbuffer[y][x] = self._tilecache[8*wt + (y-wy) % 8][(x-wx) % 8]
-                elif lcd.LCDC.background_enable:
+                elif bg_enable:
                     bt = lcd.getVRAM(background_offset + (y+by) // 8 * 32 % 0x400 + (x+bx) // 8 % 32, False)
                     # If using signed tile indices, modify index
                     if not tile_data_select:
