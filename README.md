@@ -6,7 +6,8 @@ The project worked on PyBoy version 1.2.0 and will be left here as inspiration f
 
 To use the PyBoy Color emulator, the project must be build from source. In its current state, color support works for many ROMs, but support for Cython was not finalized and as such, we recommend running the emulator (slowly) with PyPy. 
 
-
+PyBoy
+============
 <p align="center">
 <img src="README/pyboy.svg" width="480">
 </p>
